@@ -19,46 +19,64 @@ class GPR:
         :param idx: Iteration counter as an index identifier.
         :param pipe: Optional pipeline object.
         """
-        self._scaler = scaler  # Private attribute for scaler
+        self._scaler = scaler     # Private attribute for scaler
         self.kernel = kernel
         self.feats = feats
-        self.r2 = None         # The R-squared value of the model
-        self.marg_lh = None    # The marginal likelihood of the model
-        self.rmse = None       # The root mean squared error of the model
-        self.mae = None        # The mean absolute error of the model
+        self.r2 = None            # The R-squared value of the model
+        self.marg_lh = None       # The marginal likelihood of the model
+        self.rmse = None          # The root mean squared error of the model
+        self.mae = None           # The mean absolute error of the model
         self.idx = idx
-        self.pipe = pipe       # Set pipeline using setter method
+        self._pipe = pipe         # Private attribute for pipe
+        self.pipe_update = False  # Flag to indicate pipeline needs to be updated
 
-    # Getter for "scaler"
     @property
     def scaler(self):
+        """
+        Getter for "scaler"
+        :return: The scaler used for data preprocessing
+        """
         return self._scaler
 
-    # Setter for scaler
     @scaler.setter
     def scaler(self, scaler):
+        """
+        Setter for scaler
+        :param scaler: The scaler used for data preprocessing
+        :return: None
+        """
         self._scaler = scaler
-        if self.pipe is not None:
-            self.mk_pipe()
+        self.pipe_update = True
+        if self.pipe_update:
+            self.make_pipe()
+            self.pipe_update = False  # Reset the flag
 
-    # Getter for "pipe"
     @property
     def pipe(self):
+        """
+        Getter for "pipe"
+        :return: The pipeline object combining scaler and Gaussian Process Regressor.
+        """
         if self._pipe is None and self.scaler is not None:
-            self.mk_pipe()
+            self.make_pipe()
         return self._pipe
 
-    # Setter for "pipe"
     @pipe.setter
     def pipe(self, pipe):
+        """
+        Setter for "pipe"
+        :param pipe: The pipeline object combining scaler and Gaussian Process Regressor.
+        :return: None
+        """
         self._pipe = pipe
         if pipe is not None:
             self.kernel = pipe[1].kernel
             self.scaler = pipe[0]
 
-    def mk_pipe(self):
+    def make_pipe(self):
         """
         Create a pipeline with the scaler and Gaussian Process Regressor.
+        :return: None
         """
         if self.scaler is not None and self.kernel is not None:
             self._pipe = Pipeline([
@@ -74,12 +92,14 @@ class GPR:
 
     def __str__(self):
         """
-        Return a string representation of the GPRPars instance.
+        Overloading and magic method
+        :return: STR representation of the GPRPars instance
         """
         attributes = [
             f"kernel: {self.kernel}",
             f"scaler: {self.scaler}",
             f"features: {self.feats}",
+            f"pipe: {self.pipe}",
             f"R2: {self.r2}" if self.r2 is not None else "",
             f"log marginal likelihood: {self.marg_lh}" if self.marg_lh is not None else "",
             f"RMSE: {self.rmse}" if self.rmse is not None else "",
@@ -92,18 +112,21 @@ if __name__ == "__main__":
     # Create an instance of GPRPars
     gpr_pars = GPR(kernel=RBF(length_scale=1.0))
 
-    print(f"\n{gpr_pars.scaler}\n")
-
-    # Print the current state of the instance
-    print("Current state of GPRPars instance:")
+    # Print the first state of the instance
+    print("First state of GPRPars instance:")
     print(gpr_pars)
 
     # Set the scaler using the setter method
     scaler_1 = StandardScaler()
     gpr_pars.scaler = scaler_1
 
-    # Print the current state of the instance
+    # Print the second state of the instance by using the "scaler" setter
     print(f"\nSecond state of GPRPars instance:")
+    print(gpr_pars)
+
+    # Print the third state of the instance by indicating the scaler within the class
+    gpr_pars = GPR(kernel=RBF(length_scale=1.0), scaler=StandardScaler())
+    print(f"\nThird state of GPRPars instance:")
     print(gpr_pars)
 
     # Create a pipeline and assign it to the instance
@@ -113,6 +136,14 @@ if __name__ == "__main__":
     ])
     gpr_pars.pipe = pipe_1
 
-    # Print the updated state of the instance
-    print("\nUpdated state of GPRPars instance with pipeline:")
+    # Print the forth state of the instance by using the "pipe" setter
+    print("\nForth state of GPRPars instance with pipeline:")
+    print(gpr_pars)
+
+    # Print the fifth state of the instance by indicating the pipe within the class
+    gpr_pars = GPR(kernel=RBF(length_scale=1.0), scaler=StandardScaler(), pipe=Pipeline([
+        ("scaler", StandardScaler()),
+        ("gp", GaussianProcessRegressor(kernel=RBF(length_scale=0.5)))
+    ]))
+    print(f"\nFifth state of GPRPars instance:")
     print(gpr_pars)
