@@ -83,9 +83,15 @@ class GPR:
                 ("scaler", self.scaler),
                 ("gp", GaussianProcessRegressor(
                     kernel=self.kernel,
+                    # Number of optimizer restarts to find best params
                     n_restarts_optimizer=100,
+                    # Sets a random seed for reproducibility
                     random_state=42,
+                    # Normalizes the target values (y)
+                    # during the fitting process
                     normalize_y=True,
+                    # Value added to the kernel matrix diagonal during
+                    # fitting, which helps in numerical stability
                     alpha=1e-10
                 ))
             ])
@@ -110,40 +116,40 @@ class GPR:
 # Example usage:
 if __name__ == "__main__":
     # Create an instance of GPRPars
-    gpr_pars = GPR(kernel=RBF(length_scale=1.0))
+    gpr = GPR(kernel=RBF(length_scale=1.0))
 
     # Print the first state of the instance
     print("First state of GPRPars instance:")
-    print(gpr_pars)
+    print(gpr)
 
     # Set the scaler using the setter method
     scaler_1 = StandardScaler()
-    gpr_pars.scaler = scaler_1
+    gpr.scaler = scaler_1
 
     # Print the second state of the instance by using the "scaler" setter
     print(f"\nSecond state of GPRPars instance:")
-    print(gpr_pars)
+    print(gpr)
 
     # Print the third state of the instance by indicating the scaler within the class
-    gpr_pars = GPR(kernel=RBF(length_scale=1.0), scaler=StandardScaler())
+    gpr = GPR(kernel=RBF(length_scale=1.0), scaler=StandardScaler())
     print(f"\nThird state of GPRPars instance:")
-    print(gpr_pars)
+    print(gpr)
 
     # Create a pipeline and assign it to the instance
     pipe_1 = Pipeline([
         ("scaler", StandardScaler()),
         ("gp", GaussianProcessRegressor(kernel=RBF(length_scale=0.5)))
     ])
-    gpr_pars.pipe = pipe_1
+    gpr.pipe = pipe_1
 
     # Print the forth state of the instance by using the "pipe" setter
     print("\nForth state of GPRPars instance with pipeline:")
-    print(gpr_pars)
+    print(gpr)
 
     # Print the fifth state of the instance by indicating the pipe within the class
-    gpr_pars = GPR(kernel=RBF(length_scale=1.0), scaler=StandardScaler(), pipe=Pipeline([
+    gpr = GPR(kernel=RBF(length_scale=1.0), scaler=StandardScaler(), pipe=Pipeline([
         ("scaler", StandardScaler()),
         ("gp", GaussianProcessRegressor(kernel=RBF(length_scale=0.5)))
     ]))
     print(f"\nFifth state of GPRPars instance:")
-    print(gpr_pars)
+    print(gpr)

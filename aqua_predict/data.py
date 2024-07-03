@@ -111,5 +111,3 @@ class InputReader:
 
         return filtered_df
 
-# Example usage
-print(InputReader().filter_data())
