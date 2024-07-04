@@ -48,7 +48,7 @@ if __name__ == "__main__":
 
     # Scaling all input data
     scaler = preprocessing.QuantileTransformer(
-        n_quantiles=len(x_indexes_train),random_state=0
+        n_quantiles=len(x_indexes_train), random_state=0
     )
     x_all_scaled = scaler.fit_transform(x_all)
 
@@ -62,14 +62,16 @@ if __name__ == "__main__":
     nu = nu_s[-1]
 
     kernel = (ConstantKernel(constant_value=1.0,
-                             constant_value_bounds=(0.01, 10.0))
-              * Matern(nu=nu, length_scale=0.01,
+                             constant_value_bounds=(0.1, 10.0))
+              * Matern(nu=nu, length_scale=1.0,
                        length_scale_bounds=(1e-2, 1e3))
               + WhiteKernel(noise_level=1e-5,
                             noise_level_bounds=(1e-10, 1e1)))
 
-    gp = GaussianProcessRegressor(kernel=kernel, n_restarts_optimizer=50,
-                                  random_state=42, normalize_y=True,
+    gp = GaussianProcessRegressor(kernel=kernel,
+                                  n_restarts_optimizer=50,
+                                  random_state=42,
+                                  normalize_y=True,
                                   alpha=1e-10)
 
     gp.fit(x_train_scaled, y_train)
@@ -85,7 +87,9 @@ if __name__ == "__main__":
     y_mean, y_cov = gp.predict(x_all_scaled, return_cov=True)
 
     # Create plotter instance and plot
-    plotter = PlotGPR(f"GPR with {gp.kernel_}", "Time",
-                      "Water Demand", 2.0)
+    plotter = PlotGPR(f"GPR with {gp.kernel_}",
+                      "Time [Month/Year]",
+                      "Monthly per capita water consumption [L/(C*d)]",
+                      2.0)
     plotter.plot(x_indexes_train, y_train, x_indexes_test, y_test,
                  x_indexes, y_mean, y_cov, x_ticks, x_labs_plot)

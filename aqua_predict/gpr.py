@@ -84,11 +84,11 @@ class GPR:
                 ("gp", GaussianProcessRegressor(
                     kernel=self.kernel,
                     # Number of optimizer restarts to find best params
-                    n_restarts_optimizer=100,
+                    n_restarts_optimizer=50,
                     # Sets a random seed for reproducibility
                     random_state=42,
                     # Normalizes the target values (y)
-                    # during the fitting process
+                    # during the fitting process not in the prediction
                     normalize_y=True,
                     # Value added to the kernel matrix diagonal during
                     # fitting, which helps in numerical stability

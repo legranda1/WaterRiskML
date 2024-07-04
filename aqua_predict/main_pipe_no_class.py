@@ -29,9 +29,9 @@ COL_FEAT = [
 
 if __name__ == "__main__":
     # Choose the file name of the Excel data you want to work with
-    # FNAME = "Auswertung WV14 Unteres Elsenztal.xlsx"
+    FNAME = "Auswertung WV14 Unteres Elsenztal.xlsx"
     # FNAME = "Auswertung WV25 SW Füssen.xlsx"
-    FNAME = "Auswertung WV69 SW Landshut.xlsx"
+    # FNAME = "Auswertung WV69 SW Landshut.xlsx"
 
     # Load and filter the data
     data = InputReader(xlsx_file_name=FNAME).filter_data()
@@ -61,15 +61,15 @@ if __name__ == "__main__":
         for nu in nu_s:
             if noise == "Yes":
                 kernel = (ConstantKernel(constant_value=1.0,
-                                         constant_value_bounds=(0.01, 10.0))
-                          * Matern(nu=nu, length_scale=0.01,
+                                         constant_value_bounds=(0.1, 10.0))
+                          * Matern(nu=nu, length_scale=1.0,
                                    length_scale_bounds=(1e-2, 1e3))
                           + WhiteKernel(noise_level=1e-5,
                                         noise_level_bounds=(1e-10, 1e1)))
             else:
                 kernel = (ConstantKernel(constant_value=1.0,
-                                         constant_value_bounds=(0.01, 10.0))
-                          * Matern(nu=nu, length_scale=0.01,
+                                         constant_value_bounds=(0.1, 10.0))
+                          * Matern(nu=nu, length_scale=1.0,
                                    length_scale_bounds=(1e-2, 1e3)))
 
             gp = GaussianProcessRegressor(kernel=kernel,
@@ -97,6 +97,8 @@ if __name__ == "__main__":
 
             # Create plotter instance and plot
             plotter = PlotGPR(f"GPR with {pipe[1].kernel_}",
-                              "Time", "Water Demand", 2.0)
+                              "Time [Month/Year]",
+                              "Monthly per capita water consumption [L/(C*d)]",
+                              2.0)
             plotter.plot(x_indexes_train, y_train, x_indexes_test, y_test,
                          x_indexes, y_mean, y_cov, x_ticks, x_labs_plot)
