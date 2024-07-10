@@ -29,8 +29,8 @@ COL_FEAT = [
 
 if __name__ == "__main__":
     # Choose the file name of the Excel data you want to work with
-    FNAME = "Auswertung WV14 Unteres Elsenztal.xlsx"
-    # FNAME = "Auswertung WV25 SW Füssen.xlsx"
+    # FNAME = "Auswertung WV14 Unteres Elsenztal.xlsx"
+    FNAME = "Auswertung WV25 SW Füssen.xlsx"
     # FNAME = "Auswertung WV69 SW Landshut.xlsx"
 
     # Load and filter the data
@@ -99,6 +99,6 @@ if __name__ == "__main__":
             plotter = PlotGPR(f"GPR with {pipe[1].kernel_}",
                               "Time [Month/Year]",
                               "Monthly per capita water consumption [L/(C*d)]",
-                              2.0)
+                              1.96)
             plotter.plot(x_indexes_train, y_train, x_indexes_test, y_test,
                          x_indexes, y_mean, y_cov, x_ticks, x_labs_plot)

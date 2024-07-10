@@ -70,7 +70,7 @@ class PlotGPR:
         self.ax.tick_params(axis="x", rotation=70)
         self.ax.legend(["Training Data", "Test Data",
                         "GP Mean",
-                        f"GP conf interval ({int(self.std)} std)"])
+                        f"GP conf interval ({self.std} std)"])
         self.set_xticks(x_ticks, x_labs_plot)
 
         # Show the plot
