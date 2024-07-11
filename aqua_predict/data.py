@@ -1,8 +1,9 @@
 import os
-import matplotlib.pyplot as plt
 import pandas as pd
+from scipy.stats import iqr
 from config import *
 from plot import *
+
 
 class InputReader:
     def __init__(self,
@@ -113,13 +114,36 @@ class InputReader:
 
         return filtered_df
 
+    def identify_outliers(self, feature):
+        """
+        Identify outliers in a numerical dataset using the IQR method
+        :param feature: STR with the name of the feature column or dataset
+        in which to extract the outliers
+        :return: PD.SERIES or NP.ARRAY containing the outliers
+        """
+        data = self.filter_data()[feature].values
+
+        # Calculate Q1 (25th percentile) and Q3 (75th percentile)
+        q25, q75 = np.percentile(data, 25), np.percentile(data, 75)
+        iqr_value = q75 - q25
+
+        # Calculate the outlier bounds
+        lower_bound = q25 - 1.5 * iqr_value
+        upper_bound = q75 + 1.5 * iqr_value
+
+        # Identify outliers
+        outliers = data[(data < lower_bound) | (data > upper_bound)]
+        return outliers
+
 if __name__ == "__main__":
     # File names
-    FNAME = "Auswertung WV14 Unteres Elsenztal.xlsx"
+    # FNAME = "Auswertung WV14 Unteres Elsenztal.xlsx"
     # FNAME = "Auswertung WV25 SW Füssen.xlsx"
-    # FNAME = "Auswertung WV69 SW Landshut.xlsx"
+    FNAME = "Auswertung WV69 SW Landshut.xlsx"
 
     data = InputReader(xlsx_file_name=FNAME).filter_data()
+    data2 = InputReader(xlsx_file_name=FNAME).identify_outliers("NS Monat")
+    print(len(data2))
     boxplot = PlotBp(data, title="Boxplot of inputs",
                      ylabel="Ranges", fig_size=(14, 6))
     boxplot.plot(COL_FEAT)

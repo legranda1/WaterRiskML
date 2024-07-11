@@ -1,4 +1,5 @@
 import matplotlib.pyplot as plt
+import matplotlib.cm as cm
 import numpy as np
 
 
@@ -17,16 +18,56 @@ class PlotBp:
         self.ylabel = ylabel
         self.figure, self.axes = plt.subplots(figsize=fig_size)
 
-    def plot(self, features):
+    def plotdf(self, features):
         """
-        Generate and display a boxplot of a dataframe for the specified features
+        Generate and display a boxplot of a dataframe for the
+        specified features
         :param features: LIST of strings with the specified features
         :return: None
         """
         # Set the title and labels
         self.axes.set_title(self.title)
         self.axes.set_ylabel(self.ylabel)
+        # Plot boxplot
         self.df.boxplot(column=features)
+        plt.show()
+
+    def plot(self, features):
+        """
+        Generate and display a boxplot for the specified features
+        :param features: LIST of strings with the specified features
+        :return: None
+        """
+        # Set the title and labels
+        self.axes.set_title(self.title)
+        self.axes.set_ylabel(self.ylabel)
+
+        # Prepare data for boxplot
+        if isinstance(features, str):
+            features = [features]
+        # .values on a pandas Series returns a NP.ARRAY containing
+        # the underlying data of that Series
+        data = [self.df[feature].values for feature in features]
+
+        # Customize the plot
+        self.axes.grid(True)
+        flierprops = dict(marker=".", markersize=6, markeredgewidth=0.5,
+                          markeredgecolor="red", markerfacecolor="red")
+        # Generate random colors for each boxplot
+        colors = [cm.tab10(i) for i in np.linspace(0, 1, len(features))]
+
+        # Plot boxplot
+        bp = self.axes.boxplot(data, flierprops=flierprops,
+                               labels=features, patch_artist=True)
+
+        # Change the color of the median line
+        for median in bp["medians"]:
+            median.set(color="black", linewidth=1)
+
+        # Assign random colors to each box
+        for patch, color in zip(bp["boxes"], colors):
+            patch.set_facecolor(color)
+
         plt.show()
 
 
