@@ -57,9 +57,9 @@ class InputReader:
         and minimum temperatures.
         """
         # Key sheet names in the input data
-        ks_month = "Monatsmengen"             # Monthly amounts
+        ks_month = "Monatsmengen"  # Monthly amounts
         ks_d_peak = "Tagesspitzentemperatur"  # Daily peak temperature
-        ks_d_mean = "Tagesmitteltemperatur"   # Daily mean temperature
+        ks_d_mean = "Tagesmitteltemperatur"  # Daily mean temperature
 
         # Key column names for various measurements in the input data
         kc_year = "Jahr"
@@ -114,7 +114,7 @@ class InputReader:
 
         return filtered_df
 
-    def identify_outliers(self, feature):
+    def identify_outliers(self, feature, label=""):
         """
         Identify outliers in a numerical dataset using the IQR method
         :param feature: STR with the name of the feature column or dataset
@@ -131,9 +131,10 @@ class InputReader:
         lower_bound = q25 - 1.5 * iqr_value
         upper_bound = q75 + 1.5 * iqr_value
 
-        # Identify outliers
+        # Identify outliers by using "boolean indexing"
         outliers = data[(data < lower_bound) | (data > upper_bound)]
         return outliers
+
 
 if __name__ == "__main__":
     # File names
@@ -141,9 +142,28 @@ if __name__ == "__main__":
     # FNAME = "Auswertung WV25 SW Füssen.xlsx"
     FNAME = "Auswertung WV69 SW Landshut.xlsx"
 
-    data = InputReader(xlsx_file_name=FNAME).filter_data()
-    data2 = InputReader(xlsx_file_name=FNAME).identify_outliers("NS Monat")
-    print(len(data2))
-    boxplot = PlotBp(data, title="Boxplot of inputs",
-                     ylabel="Ranges", fig_size=(14, 6))
-    boxplot.plot(COL_FEAT)
+    # Parameter to investigate
+    # FEAT = COL_TAR
+    FEAT = COL_FEAT
+
+    label = "output" if FEAT == "Gesamt/Kopf" else "inputs"
+
+    try:
+        # Data filtered
+        data = InputReader(xlsx_file_name=FNAME)
+        data_filtered = data.filter_data()
+
+        # Show boxplot
+        boxplot = PlotBp(data_filtered, title=f"Boxplot of {label}",
+                         ylabel="Ranges", fig_size=(12, 6))
+        boxplot.plot(FEAT)
+
+        # Outliers
+        outliers = data.identify_outliers(FEAT) if label == "output"\
+            else data.identify_outliers(FEAT[0])
+        outliers_feature = FEAT if label == "output" else FEAT[0]
+        print(f"There are {len(outliers)} outliers {outliers} in the parameter"
+              f" '{outliers_feature}' of the file '{FNAME}'")
+    except Exception as e:
+        print(f"An error occurred: {e}")
+
