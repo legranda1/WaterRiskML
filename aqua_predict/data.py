@@ -1,6 +1,8 @@
 import os
+import matplotlib.pyplot as plt
 import pandas as pd
-
+from config import *
+from plot import *
 
 class InputReader:
     def __init__(self,
@@ -111,3 +113,13 @@ class InputReader:
 
         return filtered_df
 
+if __name__ == "__main__":
+    # File names
+    FNAME = "Auswertung WV14 Unteres Elsenztal.xlsx"
+    # FNAME = "Auswertung WV25 SW Füssen.xlsx"
+    # FNAME = "Auswertung WV69 SW Landshut.xlsx"
+
+    data = InputReader(xlsx_file_name=FNAME).filter_data()
+    boxplot = PlotBp(data, title="Boxplot of inputs",
+                     ylabel="Ranges", fig_size=(14, 6))
+    boxplot.plot(COL_FEAT)

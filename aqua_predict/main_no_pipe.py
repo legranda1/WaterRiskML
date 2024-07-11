@@ -90,6 +90,7 @@ if __name__ == "__main__":
     plotter = PlotGPR(f"GPR with {gp.kernel_}",
                       "Time [Month/Year]",
                       "Monthly per capita water consumption [L/(C*d)]",
-                      1.96)
+                      1.96,
+                      fig_size=(12, 6))
     plotter.plot(x_indexes_train, y_train, x_indexes_test, y_test,
                  x_indexes, y_mean, y_cov, x_ticks, x_labs_plot)
