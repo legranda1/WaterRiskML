@@ -1,6 +1,5 @@
 import os
 import pandas as pd
-from scipy.stats import iqr
 from config import *
 from plot import *
 
@@ -114,17 +113,18 @@ class InputReader:
 
         return filtered_df
 
-    def identify_outliers(self, feature, label=""):
+    def identify_outliers(self, feature):
         """
         Identify outliers in a numerical dataset using the IQR method
         :param feature: STR with the name of the feature column or dataset
         in which to extract the outliers
         :return: PD.SERIES or NP.ARRAY containing the outliers
         """
-        data = self.filter_data()[feature].values
+        study_data = self.filter_data()[feature].values
 
         # Calculate Q1 (25th percentile) and Q3 (75th percentile)
-        q25, q75 = np.percentile(data, 25), np.percentile(data, 75)
+        q25, q75 = (np.percentile(study_data, 25),
+                    np.percentile(study_data, 75))
         iqr_value = q75 - q25
 
         # Calculate the outlier bounds
@@ -132,8 +132,64 @@ class InputReader:
         upper_bound = q75 + 1.5 * iqr_value
 
         # Identify outliers by using "boolean indexing"
-        outliers = data[(data < lower_bound) | (data > upper_bound)]
-        return outliers
+        study_outliers = study_data[
+            (study_data < lower_bound) | (study_data > upper_bound)
+        ]
+        return study_outliers
+
+    def printing_outliers(self, feats, show_results=False):
+        """
+        Prints the outliers for given features in the dataset
+        :param feats: STR or LIST with the feature(s) to investigate
+        for outliers.
+        :param show_results: BOOL containing a flag to indicate whether
+        to print detailed results.
+        :return: None
+        """
+        # Determine the label based on the features
+        if feats == "Gesamt/Kopf":
+            label = "output"
+        else:
+            label = "inputs"
+
+        # Initialize the counter for outliers
+        count_out = 0
+
+        # Searching for outliers in the specified features
+        if label == "output":
+            # If the feature is 'output', identify outliers directly
+            outliers = self.identify_outliers(feats)
+            if len(outliers) > 0:
+                count_out += len(outliers)
+                if show_results is True:
+                    print(f"There are {len(outliers)} outliers {outliers}"
+                          f" in the {label} parameter '{feats}' of the"
+                          f" file '{self.xlsx_file_name}'")
+            else:
+                if show_results is True:
+                    print(f"There are no outliers in the {label} parameter '{feats}'"
+                          f" of the file '{self.xlsx_file_name}'")
+        else:
+            # If the feature is 'inputs', iterate over each feature to identify outliers
+            for feat in range(len(feats)):
+                outliers = self.identify_outliers(feats[feat])
+                if len(outliers) > 0:
+                    count_out += len(outliers)
+                    if show_results is True:
+                        print(f"There are {len(outliers)} outliers {outliers}"
+                              f" in the {label} parameter '{feats[feat]}' of the file"
+                              f" '{self.xlsx_file_name}'")
+                else:
+                    if show_results is True:
+                        print(f"There are no outliers in the {label} parameter '{feats[feat]}'"
+                              f" of the file '{self.xlsx_file_name}'")
+
+        # Print the total count of outliers
+        print(f"\nThere are a total number of {count_out} outliers in the"
+              f" {label} parameter(s) of the file {self.xlsx_file_name}")
+
+    def ploting_an_bp(self):
+        ...
 
 
 if __name__ == "__main__":
@@ -146,8 +202,9 @@ if __name__ == "__main__":
     # FEAT = COL_TAR
     FEAT = COL_FEAT
 
-    label = "output" if FEAT == "Gesamt/Kopf" else "inputs"
+    InputReader(xlsx_file_name=FNAME).printing_outliers(FEAT)
 
+    """
     try:
         # Data filtered
         data = InputReader(xlsx_file_name=FNAME)
@@ -158,12 +215,7 @@ if __name__ == "__main__":
                          ylabel="Ranges", fig_size=(12, 6))
         boxplot.plot(FEAT)
 
-        # Outliers
-        outliers = data.identify_outliers(FEAT) if label == "output"\
-            else data.identify_outliers(FEAT[0])
-        outliers_feature = FEAT if label == "output" else FEAT[0]
-        print(f"There are {len(outliers)} outliers {outliers} in the parameter"
-              f" '{outliers_feature}' of the file '{FNAME}'")
+
     except Exception as e:
         print(f"An error occurred: {e}")
-
+    """
