@@ -1,6 +1,7 @@
 import matplotlib.pyplot as plt
 import matplotlib.cm as cm
 import numpy as np
+import seaborn as sns
 
 
 class PlotBp:
@@ -75,6 +76,43 @@ class PlotBp:
         for patch, color in zip(bp["boxes"], colors):
             patch.set_facecolor(color)
 
+        plt.show()
+
+
+class PlotCorr:
+    def __init__(self, df=None, title="Correlatiom"):
+        """
+        Initialize the PlotCorr class.
+        :param df: PD.DATAFRAME containing the filtered data
+        :param title: STR with the title of the heatmap
+        :param fig_size: TUPLE with the figure size for the plot
+        """
+        self.df = df
+        self.title = title
+
+    def plot_hm(self):
+        """
+        Generate and display a correlation coefficient
+        heatmap for the specified features
+        :return: None
+        """
+        # Plot heat map
+        sns.heatmap(self.df, annot=True, fmt=".2f", cmap="coolwarm",
+                    cbar=True, square=True, linewidths=0.5)
+        plt.suptitle(self.title)
+        plt.tight_layout()
+        plt.show()
+
+    def plot_pp(self):
+        """
+        Generate and display a correlation pairplot for the
+        specified features
+        :return: None
+        """
+        # Plot pairplot
+        sns.pairplot(self.df, markers=".", plot_kws={"linewidth": 0.5})
+        plt.suptitle(self.title)
+        plt.tight_layout()
         plt.show()
 
 

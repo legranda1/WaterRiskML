@@ -1,11 +1,11 @@
 import os
 import pandas as pd
 import numpy as np
-from plot import PlotBp
+from plot import PlotBp, PlotCorr
 from config import *
 
 
-class DataManager(PlotBp):
+class DataManager(PlotBp, PlotCorr):
     def __init__(self,
                  xlsx_file_name="Auswertung WV14 Unteres Elsenztal.xlsx",
                  sheets=None, input_dir="./input_data/xlsx/"):
@@ -186,10 +186,10 @@ class DataManager(PlotBp):
 
     def plot_boxplot(self, feats):
         """
-        Plots a bloxplot according to the respective features
+        Plots a boxplot according to the respective features
         :param feats: STR or LIST with the feature(s) to investigate
         for plotting
-        :return: None
+        :return: A boxplot
         """
         data_filtered = self.filter_data()
         # Determine the label based on the features
@@ -198,22 +198,52 @@ class DataManager(PlotBp):
                          ylabel="Ranges", fig_size=(12, 6))
         return boxplot.plot(feats)
 
+    def plot_heatmap(self, feat1=None, feat2=None):
+        """
+        Plots a correlation coefficient heatmap for the
+        specified features.
+        :param feat1: STR of the target variable (output)
+        :param feat2: LIST of strings of feature names (inputs)
+        :return: A heatmap
+        """
+        data_filtered = self.filter_data()
+        corr_matrix = data_filtered[[feat1] + feat2].corr()
+        hm = PlotCorr(corr_matrix, title="Correlation heatmap")
+        return hm.plot_hm()
+
+    def plot_pairplot(self, feat1=None, feat2=None):
+        """
+        Plots a correlation pairplot for the specified features.
+        :param feat1: STR of the target variable (output)
+        :param feat2: LIST of strings of feature names (inputs)
+        :return: A pairplot
+        """
+        data_filtered = self.filter_data()
+        corr_matrix = data_filtered[[feat1] + feat2]
+        pp = PlotCorr(corr_matrix, title="Correlation pairplot")
+        return pp.plot_pp()
+
 
 if __name__ == "__main__":
     # File names
-    # FNAME = "Auswertung WV14 Unteres Elsenztal.xlsx"
+    FNAME = "Auswertung WV14 Unteres Elsenztal.xlsx"
     # FNAME = "Auswertung WV25 SW Füssen.xlsx"
-    FNAME = "Auswertung WV69 SW Landshut.xlsx"
+    # FNAME = "Auswertung WV69 SW Landshut.xlsx"
 
     # Parameter(s) to investigate
     # FEAT = COL_TAR
     FEAT = COL_FEAT
 
     try:
-        # Get filtered data
-        data = DataManager(xlsx_file_name=FNAME)
-        data.print_outliers(FEAT, show_results=False)
-        # Uncomment the line below to plot boxplot(s)
-        data.plot_boxplot(FEAT)
+        # Instantiate an object
+        data_handler = DataManager(xlsx_file_name=FNAME)
+        # Plot correlation heatmap
+        data_handler.plot_heatmap(COL_TAR, COL_FEAT)
+        # Plot a correlation pairplot
+        data_handler.plot_pairplot(COL_TAR, COL_FEAT)
+        # Print outliers
+        data_handler.print_outliers(FEAT, show_results=False)
+        # Plot boxplot(s)
+        data_handler.plot_boxplot(FEAT)
     except Exception as e:
         print(f"An error occurred: {e}")
