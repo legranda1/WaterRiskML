@@ -1,10 +1,11 @@
 import os
 import pandas as pd
+import numpy as np
+from plot import PlotBp
 from config import *
-from plot import *
 
 
-class InputReader:
+class DataManager(PlotBp):
     def __init__(self,
                  xlsx_file_name="Auswertung WV14 Unteres Elsenztal.xlsx",
                  sheets=None, input_dir="./input_data/xlsx/"):
@@ -16,6 +17,7 @@ class InputReader:
         :param input_dir: STR of the input directory path
         :return: None
         """
+        super().__init__(self)
         self.xlsx_file_name = xlsx_file_name
         self.sheets = sheets or [
             "Monatsmengen", "Tagesspitzentemperatur", "Tagesmitteltemperatur"
@@ -137,7 +139,7 @@ class InputReader:
         ]
         return study_outliers
 
-    def printing_outliers(self, feats, show_results=False):
+    def print_outliers(self, feats, show_results=False):
         """
         Prints the outliers for given features in the dataset
         :param feats: STR or LIST with the feature(s) to investigate
@@ -146,50 +148,55 @@ class InputReader:
         to print detailed results.
         :return: None
         """
-        # Determine the label based on the features
-        if feats == "Gesamt/Kopf":
-            label = "output"
-        else:
-            label = "inputs"
+        # Ensure feats is a list for consistent processing
+        if isinstance(feats, str):
+            feats = [feats]
 
-        # Initialize the counter for outliers
+        # Determine the label based on the feature(s)
+        label = "output" if feats == ["Gesamt/Kopf"] else "inputs"
+
+        # Initialize a counter for the number of outliers
         count_out = 0
 
-        # Searching for outliers in the specified features
-        if label == "output":
-            # If the feature is 'output', identify outliers directly
-            outliers = self.identify_outliers(feats)
+        # Iterate over each feature to identify and print outliers
+        for feat in feats:
+            # Identify outliers for the current feature
+            outliers = self.identify_outliers(feat)
+
+            # If there are outliers, increase the counter and
+            # optionally print them
             if len(outliers) > 0:
                 count_out += len(outliers)
-                if show_results is True:
-                    print(f"There are {len(outliers)} outliers {outliers}"
-                          f" in the {label} parameter '{feats}' of the"
-                          f" file '{self.xlsx_file_name}'")
+                if show_results:
+                    print(
+                        f"There are {len(outliers)} outliers {outliers}"
+                        f" in the {label} parameter '{feat}'"
+                        f" of the file '{self.xlsx_file_name}'")
             else:
-                if show_results is True:
-                    print(f"There are no outliers in the {label} parameter '{feats}'"
-                          f" of the file '{self.xlsx_file_name}'")
-        else:
-            # If the feature is 'inputs', iterate over each feature to identify outliers
-            for feat in range(len(feats)):
-                outliers = self.identify_outliers(feats[feat])
-                if len(outliers) > 0:
-                    count_out += len(outliers)
-                    if show_results is True:
-                        print(f"There are {len(outliers)} outliers {outliers}"
-                              f" in the {label} parameter '{feats[feat]}' of the file"
-                              f" '{self.xlsx_file_name}'")
-                else:
-                    if show_results is True:
-                        print(f"There are no outliers in the {label} parameter '{feats[feat]}'"
-                              f" of the file '{self.xlsx_file_name}'")
+                # Optionally print that no outliers were found
+                if show_results:
+                    print(
+                        f"There are no outliers in the {label} parameter"
+                        f" '{feat}' of the file '{self.xlsx_file_name}'")
 
-        # Print the total count of outliers
-        print(f"\nThere are a total number of {count_out} outliers in the"
-              f" {label} parameter(s) of the file {self.xlsx_file_name}")
+        # Print the total number of outliers found
+        print(
+            f"\nThere are a total number of {count_out} outliers in the"
+            f" {label} parameter(s) of the file {self.xlsx_file_name}")
 
-    def ploting_an_bp(self):
-        ...
+    def plot_boxplot(self, feats):
+        """
+        Plots a bloxplot according to the respective features
+        :param feats: STR or LIST with the feature(s) to investigate
+        for plotting
+        :return: None
+        """
+        data_filtered = self.filter_data()
+        # Determine the label based on the features
+        label = "output" if feats == "Gesamt/Kopf" else "inputs"
+        boxplot = PlotBp(data_filtered, title=f"Boxplot of {label}",
+                         ylabel="Ranges", fig_size=(12, 6))
+        return boxplot.plot(feats)
 
 
 if __name__ == "__main__":
@@ -198,24 +205,15 @@ if __name__ == "__main__":
     # FNAME = "Auswertung WV25 SW Füssen.xlsx"
     FNAME = "Auswertung WV69 SW Landshut.xlsx"
 
-    # Parameter to investigate
+    # Parameter(s) to investigate
     # FEAT = COL_TAR
     FEAT = COL_FEAT
 
-    InputReader(xlsx_file_name=FNAME).printing_outliers(FEAT)
-
-    """
     try:
-        # Data filtered
-        data = InputReader(xlsx_file_name=FNAME)
-        data_filtered = data.filter_data()
-
-        # Show boxplot
-        boxplot = PlotBp(data_filtered, title=f"Boxplot of {label}",
-                         ylabel="Ranges", fig_size=(12, 6))
-        boxplot.plot(FEAT)
-
-
+        # Get filtered data
+        data = DataManager(xlsx_file_name=FNAME)
+        data.print_outliers(FEAT, show_results=False)
+        # Uncomment the line below to plot boxplot(s)
+        data.plot_boxplot(FEAT)
     except Exception as e:
         print(f"An error occurred: {e}")
-    """

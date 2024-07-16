@@ -4,7 +4,7 @@ import numpy as np
 
 
 class PlotBp:
-    def __init__(self, df, title="Boxplot of inputs",
+    def __init__(self, df=None, title="Boxplot of inputs",
                  ylabel="Ranges", fig_size=(14, 6)):
         """
         Initialize the PlotBp class.
@@ -16,7 +16,7 @@ class PlotBp:
         self.df = df
         self.title = title
         self.ylabel = ylabel
-        self.figure, self.axes = plt.subplots(figsize=fig_size)
+        self.fig_size = fig_size
 
     def plotdf(self, features):
         """
@@ -25,9 +25,13 @@ class PlotBp:
         :param features: LIST of strings with the specified features
         :return: None
         """
+        plt.figure(figsize=self.fig_size)  # Create a new figure
+        axes = plt.gca()  # Get current axes
+
         # Set the title and labels
-        self.axes.set_title(self.title)
-        self.axes.set_ylabel(self.ylabel)
+        axes.set_title(self.title)
+        axes.set_ylabel(self.ylabel)
+
         # Plot boxplot
         self.df.boxplot(column=features)
         plt.show()
@@ -38,9 +42,12 @@ class PlotBp:
         :param features: LIST of strings with the specified features
         :return: None
         """
+        plt.figure(figsize=self.fig_size)  # Create a new figure
+        axes = plt.gca()  # Get current axes
+
         # Set the title and labels
-        self.axes.set_title(self.title)
-        self.axes.set_ylabel(self.ylabel)
+        axes.set_title(self.title)
+        axes.set_ylabel(self.ylabel)
 
         # Prepare data for boxplot
         if isinstance(features, str):
@@ -50,15 +57,15 @@ class PlotBp:
         data = [self.df[feature].values for feature in features]
 
         # Customize the plot
-        self.axes.grid(True)
+        axes.grid(True)
         flierprops = dict(marker=".", markersize=6, markeredgewidth=0.5,
                           markeredgecolor="red", markerfacecolor="red")
         # Generate random colors for each boxplot
         colors = [cm.tab10(i) for i in np.linspace(0, 1, len(features))]
 
         # Plot boxplot
-        bp = self.axes.boxplot(data, flierprops=flierprops,
-                               labels=features, patch_artist=True)
+        bp = axes.boxplot(data, flierprops=flierprops,
+                          labels=features, patch_artist=True)
 
         # Change the color of the median line
         for median in bp["medians"]:

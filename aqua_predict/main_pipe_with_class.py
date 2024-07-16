@@ -15,7 +15,7 @@ if __name__ == "__main__":
     # FNAME = "Auswertung WV69 SW Landshut.xlsx"
 
     # Load and filter the data
-    data = InputReader(xlsx_file_name=FNAME).filter_data()
+    data = DataManager(xlsx_file_name=FNAME).filter_data()
 
     # Extraction of important data from the x-axis for plotting
     x_labels = np.array(data["Monat/Jahr"])    # All X-axis time labels
