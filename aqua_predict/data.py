@@ -1,6 +1,8 @@
 import os
 import pandas as pd
 import numpy as np
+import time
+import datetime
 from plot import PlotBp, PlotCorr
 from config import *
 
@@ -234,16 +236,33 @@ if __name__ == "__main__":
     # FEAT = COL_TAR
     FEAT = COL_FEAT
 
+    # Flags
+    SHOW_CORR = True
+    SHOW_OUTLIERS = False
+
+    # Record the initial time for tracking script duration
+    init_time = time.time()
+
     try:
-        # Instantiate an object
+        # Instantiate an object of the DataManager class
         data_handler = DataManager(xlsx_file_name=FNAME)
-        # Plot correlation heatmap
-        data_handler.plot_heatmap(COL_TAR, COL_FEAT)
-        # Plot a correlation pairplot
-        data_handler.plot_pairplot(COL_TAR, COL_FEAT)
-        # Print outliers
-        data_handler.print_outliers(FEAT, show_results=False)
-        # Plot boxplot(s)
-        data_handler.plot_boxplot(FEAT)
+        if SHOW_CORR:
+            # Plot correlation heatmap (internally the data is filtered)
+            data_handler.plot_heatmap(COL_TAR, COL_FEAT)
+            # Plot a correlation pairplot (internally the data is filtered)
+            data_handler.plot_pairplot(COL_TAR, COL_FEAT)
+            # Print outliers (internally the data is filtered)
+        if SHOW_OUTLIERS:
+            data_handler.print_outliers(FEAT, show_results=False)
+            # Plot boxplot(s) (internally the data is filtered)
+            data_handler.plot_boxplot(FEAT)
     except Exception as e:
         print(f"An error occurred: {e}")
+
+    # Record the end time of the approach
+    end_time = time.time()
+
+    # Calculate and print the total running time
+    total_time = end_time - init_time  # Calculate the elapsed time
+    print(f"\nRunning time: \n{total_time:.2f} seconds / "
+          f"{datetime.timedelta(seconds=total_time)}")

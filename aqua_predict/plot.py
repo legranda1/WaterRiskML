@@ -96,6 +96,7 @@ class PlotCorr:
         heatmap for the specified features
         :return: None
         """
+        plt.figure(figsize=(8, 6))
         # Plot heat map
         sns.heatmap(self.df, annot=True, fmt=".2f", cmap="coolwarm",
                     cbar=True, square=True, linewidths=0.5)
@@ -110,7 +111,42 @@ class PlotCorr:
         :return: None
         """
         # Plot pairplot
-        sns.pairplot(self.df, markers=".", plot_kws={"linewidth": 0.5})
+        pp = sns.pairplot(self.df, markers=".", plot_kws={"linewidth": 0.5})
+
+        # Delete the for loop to have vertical axis labels again
+        # Iterate through each axes object and set the y-axis labels
+        # horizontally
+        for ax in pp.axes.flatten():
+            if ax is not None:
+                ax.tick_params(axis='x', labelsize=8)
+                ax.tick_params(axis='y', labelsize=8)
+                ax.xaxis.label.set_size(8)
+                ax.yaxis.label.set_size(8)
+                ax.yaxis.get_label().set_rotation(0)
+                ax.yaxis.labelpad = 40
+
+        # Iterate through each axes object to annotate with
+        # correlation coefficients
+        for i in range(len(self.df.columns)):
+            for j in range(len(self.df.columns)):
+                ax = pp.axes[i, j]
+
+                if i == j:
+                    # For diagonal plots, annotate with mean or
+                    # other metric
+                    ax.annotate(f"μ = {np.mean(self.df.iloc[:, i]):.2f}",
+                                xy=(0.5, 1.0), xycoords='axes fraction',
+                                ha='center', va='center', fontsize=6)
+                    ax.annotate(f"σ = {np.std(self.df.iloc[:, i]):.2f}",
+                                xy=(0.5, 0.5), xycoords='axes fraction',
+                                ha='center', va='center', fontsize=6)
+                else:
+                    # For off-diagonal plots, annotate with
+                    # correlation coefficient
+                    ax.annotate(f"r = {self.df.corr().iloc[i, j]:.2f}",
+                                xy=(0.5, 1.20), xycoords='axes fraction',
+                                ha='center', va='center', fontsize=7)
+
         plt.suptitle(self.title)
         plt.tight_layout()
         plt.show()
