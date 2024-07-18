@@ -117,33 +117,60 @@ class DataManager(PlotBp, PlotCorr):
 
         return filtered_df
 
-    def clean_data(self, feature):
+    def clean_data(self, feature, data):
         """
-
+        Cleans the data by removing outliers from the specified feature.
+        :param data: PD.DATAFRAME with the dataset to clean
         :param feature: STR with the name of the feature column or dataset
         in which to extract the outliers
         :return: PD.DATAFRAME containing the data without outliers
         """
-        filter_data = self.filter_data()
-        outliers_values = self.identify_outliers(feature, with_outliers=True)
-        # Returns a boolean Series where each element is True if the
-        # corresponding element in filter_data[feature] is in outliers_values
-        outliers_bool = filter_data[filter_data[feature].isin(outliers_values)]
-        outliers_df = pd.DataFrame(data=outliers_bool)
-        return filter_data.drop(outliers_df.index)
+        if isinstance(feature, str):
+            # Convert to list if a single feature is provided
+            feature = [feature]
 
-    def identify_outliers(self, feature, with_outliers=True):
+        # Identify outlier values in the specified feature(s)
+        outliers_values = []
+        for feat in feature:
+            outliers_values.extend(self.identify_outliers(feat, data))
+
+        # Remove rows where any of the feature columns contain outlier values
+        for feat in feature:
+            data = data[~data[feat].isin(outliers_values)]
+
+        # Return the cleaned data
+        return data
+
+    def iterative_cleaning(self, feature, max_iterations=10):
+        """
+         Iteratively cleans the data to remove outliers from the specified feature.
+        :param feature: STR containing the name of the feature column to clean
+        :param max_iterations: INT with the maximum number of iterations to perform
+        :return: PD.DATAFRAME containing the cleaned data
+        """
+        # Filter the initial data
+        data = self.filter_data()
+
+        while True:
+            initial_len = len(data)
+            # Clean the data to remove outliers from the specified feature
+            data = self.clean_data(feature, data)
+            # Check if the length of the data has not changed
+            if len(data) == initial_len:
+                # No more outliers detected, break the loop
+                break
+
+        return data
+
+    def identify_outliers(self, feature, data):
         """
         Identify outliers in a numerical dataset using the IQR method
-        :param with_outliers:
         :param feature: STR with the name of the feature column or dataset
         in which to extract the outliers
+        :param data: PD.DATAFRAME with the dataset to clean
         :return: NP.ARRAY containing the outliers
         """
-        if with_outliers:
-            study_data = self.filter_data()[feature].values  # Gives a np.array
-        else:
-            study_data = self.clean_data(feature)[feature].values  # Gives a np.array
+        study_data = data[feature].values  # Gives a np.array
 
         # Calculate Q1 (25th percentile) and Q3 (75th percentile)
         q25, q75 = (np.percentile(study_data, 25),
@@ -160,12 +187,12 @@ class DataManager(PlotBp, PlotCorr):
         ]
         return study_outliers
 
-    def print_outliers(self, feats, show_results=True, with_outliers=True):
+    def print_outliers(self, feats, data, show_results=True):
         """
         Prints the outliers for given features in the dataset
-        :param with_outliers:
         :param feats: STR or LIST with the feature(s) to investigate
         for outliers.
+        :param data: PD.DATAFRAME with the dataset to clean
         :param show_results: BOOL containing a flag to indicate whether
         to print detailed results.
         :return: None
@@ -183,7 +210,7 @@ class DataManager(PlotBp, PlotCorr):
         # Iterate over each feature to identify and print outliers
         for feat in feats:
             if feat not in ("Heiße Tage", "Sommertage", "Eistage"):
-                outliers = self.identify_outliers(feat, with_outliers=with_outliers)
+                outliers = self.identify_outliers(feat, data)
                 # If there are outliers, increase the counter and
                 # optionally print them
                 if len(outliers) > 0:
@@ -199,22 +226,16 @@ class DataManager(PlotBp, PlotCorr):
             f"- There are a total number of {count_out} outliers in the"
             f" {label} parameter(s) of the file {self.xlsx_file_name}\n")
 
-    def plot_boxplot(self, feats, units, with_outliers=True):
+    def plot_boxplot(self, feats, units, data):
         """
         Plots a boxplot according to the respective features.
         :param feats: STR or LIST with the feature(s) to investigate for plotting.
         :param units: LIST with the units corresponding to each feature.
-        :param with_outliers: Boolean indicating whether to include outliers (default: True).
+        :param data: PD.DATAFRAME with the dataset to clean
         :return: A boxplot object
         """
         # Determine the label based on the features
         label = "output" if feats == "Gesamt/Kopf" else "inputs"
-
-        if with_outliers:
-            data = self.filter_data()
-        else:
-            data = self.clean_data(feats)
-
         boxplot = PlotBp(data, title=f"Boxplot of {label}",
                          ylabel="Ranges", fig_size=(12, 6))
         return boxplot.plot(feats, units)
@@ -252,8 +273,8 @@ if __name__ == "__main__":
     # FNAME = "Auswertung WV69 SW Landshut.xlsx"
 
     # Parameter(s) to investigate
-    FEAT = [COL_TAR, UNIT_TAR]
-    # FEAT = [COL_FEAT, UNIT_FEAT]
+    # FEAT = [COL_TAR, UNIT_TAR]
+    FEAT = [COL_FEAT, UNIT_FEAT]
 
     # Flags
     SHOW_CORR = False
@@ -273,13 +294,16 @@ if __name__ == "__main__":
             data_handler.plot_pairplot(COL_TAR, COL_FEAT)
             # Print outliers (internally the data is filtered)
         if SHOW_OUTLIERS:
-            data_handler.print_outliers(FEAT[0], show_results=True, with_outliers=True)
+            initial_data = data_handler.filter_data()
+            data_handler.print_outliers(FEAT[0], initial_data, show_results=True)
             # Plot boxplot(s) (internally the data is filtered)
-            data_handler.plot_boxplot(FEAT[0], FEAT[1], with_outliers=True)
+            data_handler.plot_boxplot(FEAT[0], FEAT[1], initial_data)
         if SHOW_CLEAN:
-            data_handler.print_outliers(FEAT[0], show_results=True, with_outliers=False)
+            cleaned_data = data_handler.iterative_cleaning(FEAT[0])
+            data_handler.print_outliers(FEAT[0], cleaned_data, show_results=True)
             # Plot boxplot(s) (internally the data is cleaned)
-            data_handler.plot_boxplot(FEAT[0], FEAT[1], with_outliers=False)
+            data_handler.plot_boxplot(FEAT[0], FEAT[1], cleaned_data)
+
     except Exception as e:
         print(f"An error occurred: {e}")
 
