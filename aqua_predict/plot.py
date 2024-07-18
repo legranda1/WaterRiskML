@@ -37,10 +37,11 @@ class PlotBp:
         self.df.boxplot(column=features)
         plt.show()
 
-    def plot(self, features):
+    def plot(self, features, units):
         """
         Generate and display a boxplot for the specified features
         :param features: LIST of strings with the specified features
+        :param units: LIST of strings with the units corresponding to each feature
         :return: None
         """
         plt.figure(figsize=self.fig_size)  # Create a new figure
@@ -53,6 +54,11 @@ class PlotBp:
         # Prepare data for boxplot
         if isinstance(features, str):
             features = [features]
+        if isinstance(units, str):
+            units = [units]
+        # Ensure features and units lists are the same length
+        assert len(features) == len(units), "Features and units must have the same length"
+
         # .values on a pandas Series returns a NP.ARRAY containing
         # the underlying data of that Series
         data = [self.df[feature].values for feature in features]
@@ -75,6 +81,12 @@ class PlotBp:
         # Assign random colors to each box
         for patch, color in zip(bp["boxes"], colors):
             patch.set_facecolor(color)
+
+        # Add unit labels below the feature labels
+        for i, (feature, unit) in enumerate(zip(features, units), start=1):
+            axes.annotate(unit, xy=(i, -0.05), xycoords=("data", "axes fraction"),
+                          xytext=(0, -15), textcoords="offset points",
+                          ha="center", va="bottom", fontsize=10, color="black")
 
         plt.show()
 

@@ -1,6 +1,8 @@
 # Define the column name for the target variable (output)
 COL_TAR = "Gesamt/Kopf"  # Monthly water demand
 
+UNIT_TAR = "[L/(C*d)]"
+
 # Define a list of feature column names (inputs)
 COL_FEAT = [
     "NS Monat",         # Monthly precipitation
@@ -15,4 +17,17 @@ COL_FEAT = [
                         # than or equal to 25 °C)
     "Eistage",          # Number of ice days
     "T Min Monat"       # Minimum temperature of the month
+]
+
+UNIT_FEAT = [
+    "[mm]",
+    "[°C]",
+    "[°C]",
+    "[mm]",
+    "[mm]",
+    "[mm]",
+    "[-]",
+    "[-]",
+    "[-]",
+    "[°C]"
 ]

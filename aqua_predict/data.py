@@ -155,38 +155,33 @@ class DataManager(PlotBp, PlotCorr):
             feats = [feats]
 
         # Determine the label based on the feature(s)
-        label = "output" if feats == ["Gesamt/Kopf"] else "inputs"
+        label = "output" if feats == ["Gesamt/Kopf"] else "input"
 
         # Initialize a counter for the number of outliers
         count_out = 0
 
         # Iterate over each feature to identify and print outliers
         for feat in feats:
-            # Identify outliers for the current feature
-            outliers = self.identify_outliers(feat)
+            if feat not in ("Heiße Tage", "Sommertage", "Eistage"):
+                # Identify outliers for the current feature
+                outliers = self.identify_outliers(feat)
 
-            # If there are outliers, increase the counter and
-            # optionally print them
-            if len(outliers) > 0:
-                count_out += len(outliers)
-                if show_results:
-                    print(
-                        f"There are {len(outliers)} outliers {outliers}"
-                        f" in the {label} parameter '{feat}'"
-                        f" of the file '{self.xlsx_file_name}'")
-            else:
-                # Optionally print that no outliers were found
-                if show_results:
-                    print(
-                        f"There are no outliers in the {label} parameter"
-                        f" '{feat}' of the file '{self.xlsx_file_name}'")
+                # If there are outliers, increase the counter and
+                # optionally print them
+                if len(outliers) > 0:
+                    count_out += len(outliers)
+                    if show_results:
+                        print(
+                            f"There are {len(outliers)} outliers {outliers}"
+                            f" in the {label} parameter '{feat}'"
+                            f" of the file '{self.xlsx_file_name}'")
 
         # Print the total number of outliers found
         print(
             f"\nThere are a total number of {count_out} outliers in the"
             f" {label} parameter(s) of the file {self.xlsx_file_name}")
 
-    def plot_boxplot(self, feats):
+    def plot_boxplot(self, feats, units):
         """
         Plots a boxplot according to the respective features
         :param feats: STR or LIST with the feature(s) to investigate
@@ -198,7 +193,7 @@ class DataManager(PlotBp, PlotCorr):
         label = "output" if feats == "Gesamt/Kopf" else "inputs"
         boxplot = PlotBp(data_filtered, title=f"Boxplot of {label}",
                          ylabel="Ranges", fig_size=(12, 6))
-        return boxplot.plot(feats)
+        return boxplot.plot(feats, units)
 
     def plot_heatmap(self, feat1=None, feat2=None):
         """
@@ -233,12 +228,12 @@ if __name__ == "__main__":
     # FNAME = "Auswertung WV69 SW Landshut.xlsx"
 
     # Parameter(s) to investigate
-    # FEAT = COL_TAR
-    FEAT = COL_FEAT
+    # FEAT = [COL_TAR, UNIT_TAR]
+    FEAT = [COL_FEAT, UNIT_FEAT]
 
     # Flags
-    SHOW_CORR = True
-    SHOW_OUTLIERS = False
+    SHOW_CORR = False
+    SHOW_OUTLIERS = True
 
     # Record the initial time for tracking script duration
     init_time = time.time()
@@ -253,9 +248,9 @@ if __name__ == "__main__":
             data_handler.plot_pairplot(COL_TAR, COL_FEAT)
             # Print outliers (internally the data is filtered)
         if SHOW_OUTLIERS:
-            data_handler.print_outliers(FEAT, show_results=False)
+            data_handler.print_outliers(FEAT[0], show_results=True)
             # Plot boxplot(s) (internally the data is filtered)
-            data_handler.plot_boxplot(FEAT)
+            data_handler.plot_boxplot(FEAT[0], FEAT[1])
     except Exception as e:
         print(f"An error occurred: {e}")
 
