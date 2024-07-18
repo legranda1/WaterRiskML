@@ -19,7 +19,7 @@ class DataManager(PlotBp, PlotCorr):
         :param input_dir: STR of the input directory path
         :return: None
         """
-        super().__init__(self)
+        super().__init__()
         self.xlsx_file_name = xlsx_file_name
         self.sheets = sheets or [
             "Monatsmengen", "Tagesspitzentemperatur", "Tagesmitteltemperatur"
@@ -117,14 +117,33 @@ class DataManager(PlotBp, PlotCorr):
 
         return filtered_df
 
-    def identify_outliers(self, feature):
+    def clean_data(self, feature):
         """
-        Identify outliers in a numerical dataset using the IQR method
+
         :param feature: STR with the name of the feature column or dataset
         in which to extract the outliers
-        :return: PD.SERIES or NP.ARRAY containing the outliers
+        :return: PD.DATAFRAME containing the data without outliers
         """
-        study_data = self.filter_data()[feature].values
+        filter_data = self.filter_data()
+        outliers_values = self.identify_outliers(feature, with_outliers=True)
+        # Returns a boolean Series where each element is True if the
+        # corresponding element in filter_data[feature] is in outliers_values
+        outliers_bool = filter_data[filter_data[feature].isin(outliers_values)]
+        outliers_df = pd.DataFrame(data=outliers_bool)
+        return filter_data.drop(outliers_df.index)
+
+    def identify_outliers(self, feature, with_outliers=True):
+        """
+        Identify outliers in a numerical dataset using the IQR method
+        :param with_outliers:
+        :param feature: STR with the name of the feature column or dataset
+        in which to extract the outliers
+        :return: NP.ARRAY containing the outliers
+        """
+        if with_outliers:
+            study_data = self.filter_data()[feature].values  # Gives a np.array
+        else:
+            study_data = self.clean_data(feature)[feature].values  # Gives a np.array
 
         # Calculate Q1 (25th percentile) and Q3 (75th percentile)
         q25, q75 = (np.percentile(study_data, 25),
@@ -141,9 +160,10 @@ class DataManager(PlotBp, PlotCorr):
         ]
         return study_outliers
 
-    def print_outliers(self, feats, show_results=False):
+    def print_outliers(self, feats, show_results=True, with_outliers=True):
         """
         Prints the outliers for given features in the dataset
+        :param with_outliers:
         :param feats: STR or LIST with the feature(s) to investigate
         for outliers.
         :param show_results: BOOL containing a flag to indicate whether
@@ -163,35 +183,39 @@ class DataManager(PlotBp, PlotCorr):
         # Iterate over each feature to identify and print outliers
         for feat in feats:
             if feat not in ("Heiße Tage", "Sommertage", "Eistage"):
-                # Identify outliers for the current feature
-                outliers = self.identify_outliers(feat)
-
+                outliers = self.identify_outliers(feat, with_outliers=with_outliers)
                 # If there are outliers, increase the counter and
                 # optionally print them
                 if len(outliers) > 0:
                     count_out += len(outliers)
                     if show_results:
                         print(
-                            f"There are {len(outliers)} outliers {outliers}"
+                            f"- There are {len(outliers)} outliers {outliers}"
                             f" in the {label} parameter '{feat}'"
                             f" of the file '{self.xlsx_file_name}'")
 
         # Print the total number of outliers found
         print(
-            f"\nThere are a total number of {count_out} outliers in the"
-            f" {label} parameter(s) of the file {self.xlsx_file_name}")
+            f"- There are a total number of {count_out} outliers in the"
+            f" {label} parameter(s) of the file {self.xlsx_file_name}\n")
 
-    def plot_boxplot(self, feats, units):
+    def plot_boxplot(self, feats, units, with_outliers=True):
         """
-        Plots a boxplot according to the respective features
-        :param feats: STR or LIST with the feature(s) to investigate
-        for plotting
-        :return: A boxplot
+        Plots a boxplot according to the respective features.
+        :param feats: STR or LIST with the feature(s) to investigate for plotting.
+        :param units: LIST with the units corresponding to each feature.
+        :param with_outliers: Boolean indicating whether to include outliers (default: True).
+        :return: A boxplot object
         """
-        data_filtered = self.filter_data()
         # Determine the label based on the features
         label = "output" if feats == "Gesamt/Kopf" else "inputs"
-        boxplot = PlotBp(data_filtered, title=f"Boxplot of {label}",
+
+        if with_outliers:
+            data = self.filter_data()
+        else:
+            data = self.clean_data(feats)
+
+        boxplot = PlotBp(data, title=f"Boxplot of {label}",
                          ylabel="Ranges", fig_size=(12, 6))
         return boxplot.plot(feats, units)
 
@@ -228,12 +252,13 @@ if __name__ == "__main__":
     # FNAME = "Auswertung WV69 SW Landshut.xlsx"
 
     # Parameter(s) to investigate
-    # FEAT = [COL_TAR, UNIT_TAR]
-    FEAT = [COL_FEAT, UNIT_FEAT]
+    FEAT = [COL_TAR, UNIT_TAR]
+    # FEAT = [COL_FEAT, UNIT_FEAT]
 
     # Flags
     SHOW_CORR = False
     SHOW_OUTLIERS = True
+    SHOW_CLEAN = True
 
     # Record the initial time for tracking script duration
     init_time = time.time()
@@ -248,9 +273,13 @@ if __name__ == "__main__":
             data_handler.plot_pairplot(COL_TAR, COL_FEAT)
             # Print outliers (internally the data is filtered)
         if SHOW_OUTLIERS:
-            data_handler.print_outliers(FEAT[0], show_results=True)
+            data_handler.print_outliers(FEAT[0], show_results=True, with_outliers=True)
             # Plot boxplot(s) (internally the data is filtered)
-            data_handler.plot_boxplot(FEAT[0], FEAT[1])
+            data_handler.plot_boxplot(FEAT[0], FEAT[1], with_outliers=True)
+        if SHOW_CLEAN:
+            data_handler.print_outliers(FEAT[0], show_results=True, with_outliers=False)
+            # Plot boxplot(s) (internally the data is cleaned)
+            data_handler.plot_boxplot(FEAT[0], FEAT[1], with_outliers=False)
     except Exception as e:
         print(f"An error occurred: {e}")
 

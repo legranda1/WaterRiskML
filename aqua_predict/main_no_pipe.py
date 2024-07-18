@@ -1,30 +1,12 @@
 from data import *
 from fun import *
 from plot import *
+from config import *
 from sklearn import preprocessing
 from sklearn.gaussian_process import GaussianProcessRegressor
 from sklearn.gaussian_process.kernels import (ConstantKernel, Matern,
                                               WhiteKernel)
 from sklearn.metrics import root_mean_squared_error, mean_absolute_error
-
-# Define the column name for the target variable (output)
-COL_TAR = "Gesamt/Kopf"  # Monthly water demand
-
-# Define a list of feature column names (inputs)
-COL_FEAT = [
-    "NS Monat",         # Monthly precipitation
-    "T Monat Mittel",   # Average temperature of the month
-    "T Max Monat",      # Maximum temperature of the month
-    "pot Evap",         # Potential evaporation
-    "klimat. WB",       # Climatic water balance
-    "pos. klimat. WB",  # Positive climatic water balance
-    "Heiße Tage",       # Number of hot days (peak temp. greater than
-                        # or equal to 30 °C)
-    "Sommertage",       # Number of summer days (peak temp. greater
-                        # than or equal to 25 °C)
-    "Eistage",          # Number of ice days
-    "T Min Monat"       # Minimum temperature of the month
-]
 
 if __name__ == "__main__":
     # Choose the file name of the Excel data you want to work with
