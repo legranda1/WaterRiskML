@@ -199,9 +199,6 @@ class DataManager(PlotBp, PlotCorr):
         if isinstance(feats, str):
             feats = [feats]
 
-        # Determine the label based on the feature(s)
-        label = "output" if feats == ["Gesamt/Kopf"] else "input"
-
         # Initialize a counter for the number of outliers
         count_out = 0
 
@@ -216,68 +213,68 @@ class DataManager(PlotBp, PlotCorr):
                     if show_results:
                         print(
                             f"- There are {len(outliers)} outliers {outliers}"
-                            f" in the {label} parameter '{feat}'"
+                            f" in the parameter '{feat}'"
                             f" of the file '{self.xlsx_file_name}'")
 
         # Print the total number of outliers found
         print(
-            f"- There are a total number of {count_out} outliers in the"
-            f" {label} parameter(s) of the file {self.xlsx_file_name}\n")
+            f"- There are a total number of {count_out} outliers "
+            f"in the file {self.xlsx_file_name}\n")
 
     def plot_boxplot(self, feats, units, data):
         """
         Plots a boxplot according to the respective features.
         :param feats: STR or LIST with the feature(s) to investigate for plotting.
         :param units: LIST with the units corresponding to each feature.
-        :param data: PD.DATAFRAME with the dataset to clean
+        :param data: PD.DATAFRAME with the dataset to plot
         :return: A boxplot object
         """
-        # Determine the label based on the features
-        label = "output" if feats == "Gesamt/Kopf" else "inputs"
-        boxplot = PlotBp(data, title=f"Boxplot of {label}",
+        boxplot = PlotBp(data, title=f"Boxplot",
                          ylabel="Ranges", fig_size=(12, 6))
         return boxplot.plot(feats, units)
 
-    def plot_heatmap(self, feat1=None, feat2=None):
+    def plot_heatmap(self, data, feat1=None, feat2=None):
         """
         Plots a correlation coefficient heatmap for the
         specified features.
+        :param data: PD.DATAFRAME with the dataset to plot
         :param feat1: STR of the target variable (output)
         :param feat2: LIST of strings of feature names (inputs)
         :return: A heatmap
         """
-        data_filtered = self.filter_data()
-        corr_matrix = data_filtered[[feat1] + feat2].corr()
+        corr_matrix = data[[feat1] + feat2].corr()
         hm = PlotCorr(corr_matrix, title="Correlation heatmap")
         return hm.plot_hm()
 
-    def plot_pairplot(self, feat1=None, feat2=None):
+    def plot_pairplot(self, data, feat1=None, feat2=None):
         """
         Plots a correlation pairplot for the specified features.
+        :param data: PD.DATAFRAME with the dataset to plot
         :param feat1: STR of the target variable (output)
         :param feat2: LIST of strings of feature names (inputs)
         :return: A pairplot
         """
-        data_filtered = self.filter_data()
-        corr_matrix = data_filtered[[feat1] + feat2]
+        corr_matrix = data[[feat1] + feat2]
         pp = PlotCorr(corr_matrix, title="Correlation pairplot")
         return pp.plot_pp()
 
 
 if __name__ == "__main__":
     # File names
-    FNAME = "Auswertung WV14 Unteres Elsenztal.xlsx"
+    # FNAME = "Auswertung WV14 Unteres Elsenztal.xlsx"
     # FNAME = "Auswertung WV25 SW Füssen.xlsx"
-    # FNAME = "Auswertung WV69 SW Landshut.xlsx"
+    FNAME = "Auswertung WV69 SW Landshut.xlsx"
 
     # Parameter(s) to investigate
-    FEAT = [COL_TAR, UNIT_TAR]
+    # FEAT = [COL_TAR, UNIT_TAR]
     # FEAT = [COL_FEAT, UNIT_FEAT]
+    FEAT = [COL_ALL, UNIT_ALL]
 
     # Flags
-    SHOW_CORR = False
+    SHOW_INIT_CORR = False
     SHOW_OUTLIERS = False
     SHOW_CLEAN = False
+    SHOW_CLEAN_CORR = True
 
     # Record the initial time for tracking script duration
     init_time = time.time()
@@ -285,28 +282,26 @@ if __name__ == "__main__":
     try:
         # Instantiate an object of the DataManager class
         data_handler = DataManager(xlsx_file_name=FNAME)
-        if SHOW_CORR:
+        initial_data = data_handler.filter_data()
+        cleaned_data = data_handler.iterative_cleaning(FEAT[0])
+        if SHOW_INIT_CORR:
             # Plot correlation heatmap (internally the data is filtered)
-            data_handler.plot_heatmap(COL_TAR, COL_FEAT)
+            data_handler.plot_heatmap(initial_data, COL_TAR, COL_FEAT)
             # Plot a correlation pairplot (internally the data is filtered)
-            data_handler.plot_pairplot(COL_TAR, COL_FEAT)
-            # Print outliers (internally the data is filtered)
+            data_handler.plot_pairplot(initial_data, COL_TAR, COL_FEAT)
         if SHOW_OUTLIERS:
-            initial_data = data_handler.filter_data()
             print(initial_data)
             data_handler.print_outliers(FEAT[0], initial_data, show_results=True)
             # Plot boxplot(s) (internally the data is filtered)
             data_handler.plot_boxplot(FEAT[0], FEAT[1], initial_data)
         if SHOW_CLEAN:
-            cleaned_data = data_handler.iterative_cleaning(FEAT[0])
             print(cleaned_data)
             data_handler.print_outliers(FEAT[0], cleaned_data, show_results=True)
             # Plot boxplot(s) (internally the data is cleaned)
             data_handler.plot_boxplot(FEAT[0], FEAT[1], cleaned_data)
-        print(data_handler.iterative_cleaning(COL_FEAT))
-        print(data_handler.iterative_cleaning(COL_TAR))
-
-
+        if SHOW_CLEAN_CORR:
+            data_handler.plot_heatmap(cleaned_data, COL_TAR, COL_FEAT)
+            data_handler.plot_pairplot(cleaned_data, COL_TAR, COL_FEAT)
     except Exception as e:
         print(f"An error occurred: {e}")
 
