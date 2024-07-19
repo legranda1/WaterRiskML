@@ -35,17 +35,23 @@ if __name__ == "__main__":
 
     # Load and filter the data
     data = DataManager(xlsx_file_name=FNAME).filter_data()
+    inputs_cleaned = DataManager(xlsx_file_name=FNAME).iterative_cleaning(COL_FEAT)
+    output_cleaned = DataManager(xlsx_file_name=FNAME).iterative_cleaning(COL_TAR)
+    print(len(inputs_cleaned))
+    print(len(output_cleaned)) # Arreglar de tal manera se tenga las mismas dimensiones (tal vez tener igual un solo dataframe limpio)
 
+
+    """
     # Extraction of important data from the x-axis for plotting
-    x_labels = np.array(data["Monat/Jahr"])  # All X-axis time labels
+    x_labels = np.array(inputs_cleaned["Monat/Jahr"])  # All X-axis time labels
     x_indexes = np.arange(x_labels.shape[0])  # X-axis indexes
     x_indexes_train, x_indexes_test = split_data(x_indexes, 0.7)
     x_ticks = np.arange(0, len(x_indexes), 6)  # X ticks for plotting
     x_labs_plot = x_labels[x_ticks]  # X labels for plotting
 
     # Extraction of all input and output data
-    x_all = np.array(data[COL_FEAT])
-    y_all = np.array(data[COL_TAR])
+    x_all = np.array(inputs_cleaned[COL_FEAT])
+    y_all = np.array(output_cleaned[COL_TAR])
 
     # Splitting training and test data
     x_train, x_test = split_data(x_all, 0.7)
@@ -103,3 +109,4 @@ if __name__ == "__main__":
                               fig_size=(12, 6))
             plotter.plot(x_indexes_train, y_train, x_indexes_test, y_test,
                          x_indexes, y_mean, y_cov, x_ticks, x_labs_plot)
+        """
