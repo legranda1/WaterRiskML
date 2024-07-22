@@ -3,7 +3,7 @@ import pandas as pd
 import numpy as np
 import time
 import datetime
-from plot import PlotBp, PlotCorr
+from plot import PlotBp, PlotCorr, PlotTS
 from config import *
 
 
@@ -258,12 +258,26 @@ class DataManager(PlotBp, PlotCorr):
         pp = PlotCorr(corr_matrix, title="Correlation pairplot")
         return pp.plot_pp()
 
+    def plot_timeseries(self, data, feats):
+        """
+        Plots a time series plot for the specified features.
+        :param feats: LIST of strings of feature names (inputs)
+        :param data: PD.DATAFRAME with the dataset to plot
+        :return: A timeseries plot
+        """
+        ts = PlotTS(
+            data,
+            title=f"Time series of '{self.xlsx_file_name}'",
+            xlabel="Time", ylabel="Ranges", fig_size=(14, 6)
+        )
+        return ts.plot(feats)
+
 
 if __name__ == "__main__":
     # File names
-    # FNAME = "Auswertung WV14 Unteres Elsenztal.xlsx"
+    FNAME = "Auswertung WV14 Unteres Elsenztal.xlsx"
     # FNAME = "Auswertung WV25 SW Füssen.xlsx"
-    FNAME = "Auswertung WV69 SW Landshut.xlsx"
+    # FNAME = "Auswertung WV69 SW Landshut.xlsx"
 
     # Parameter(s) to investigate
     # FEAT = [COL_TAR, UNIT_TAR]
@@ -273,8 +287,10 @@ if __name__ == "__main__":
     # Flags
     SHOW_INIT_CORR = False
     SHOW_OUTLIERS = False
+    SHOW_INIT_TIMESERIES = True
+    SHOW_CLEAN_TIMESERIES = True
     SHOW_CLEAN = False
-    SHOW_CLEAN_CORR = True
+    SHOW_CLEAN_CORR = False
 
     # Record the initial time for tracking script duration
     init_time = time.time()
@@ -285,19 +301,19 @@ if __name__ == "__main__":
         initial_data = data_handler.filter_data()
         cleaned_data = data_handler.iterative_cleaning(FEAT[0])
         if SHOW_INIT_CORR:
-            # Plot correlation heatmap (internally the data is filtered)
             data_handler.plot_heatmap(initial_data, COL_TAR, COL_FEAT)
-            # Plot a correlation pairplot (internally the data is filtered)
             data_handler.plot_pairplot(initial_data, COL_TAR, COL_FEAT)
+        if SHOW_INIT_TIMESERIES:
+            data_handler.plot_timeseries(initial_data, COL_FEAT)
+        if SHOW_CLEAN_TIMESERIES:
+            data_handler.plot_timeseries(cleaned_data, COL_FEAT)
         if SHOW_OUTLIERS:
             print(initial_data)
             data_handler.print_outliers(FEAT[0], initial_data, show_results=True)
-            # Plot boxplot(s) (internally the data is filtered)
             data_handler.plot_boxplot(FEAT[0], FEAT[1], initial_data)
         if SHOW_CLEAN:
             print(cleaned_data)
             data_handler.print_outliers(FEAT[0], cleaned_data, show_results=True)
-            # Plot boxplot(s) (internally the data is cleaned)
             data_handler.plot_boxplot(FEAT[0], FEAT[1], cleaned_data)
         if SHOW_CLEAN_CORR:
             data_handler.plot_heatmap(cleaned_data, COL_TAR, COL_FEAT)

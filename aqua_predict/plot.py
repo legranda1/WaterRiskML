@@ -246,3 +246,57 @@ class PlotGPR:
         # Show the plot
         plt.show()
 
+
+class PlotTS:
+    def __init__(self, df=None, title="Time series of features",
+                 xlabel="Time", ylabel="Ranges", fig_size=(14, 6)):
+        """
+        Initialize the PlotTS class.
+        :param df: PD.DATAFRAME containing the data
+        :param title: STR with the title of the time series plot
+        :param xlabel: STR with the X-axis label
+        :param ylabel: STR with the Y-axis label
+        :param fig_size: TUPLE with the figure size for the plot
+        """
+        self.df = df
+        self.title = title
+        self.xlabel = xlabel
+        self.ylabel = ylabel
+        self.figure_size = fig_size
+
+    def plot(self, features):
+        """
+        Plots the time series of different features
+        :param features: LIST of STR with the names of the respective feature
+        :return: None
+        """
+        plt.figure(figsize=self.figure_size)  # Create a new figure
+        axes = plt.gca()  # Get current axes
+
+        # Extraction of important data from the x-axis for plotting
+        x_labels = np.array(self.df["Monat/Jahr"])  # All X-axis time labels
+        x_indexes = np.arange(x_labels.shape[0])  # X-axis indexes
+        x_ticks = np.arange(0, len(x_indexes), 6)  # X ticks for plotting
+        x_labs_plot = x_labels[x_ticks]  # X labels for plotting
+
+        # Set the title and labels
+        axes.set_title(self.title)
+        axes.set_xlabel(self.xlabel)
+        axes.set_ylabel(self.ylabel)
+
+        # Plot knowing data points
+        for feat in features:
+            if feat == "Gesamt/Kopf":
+                axes.plot(x_indexes, self.df[feat], label=feat, linewidth=2)
+            else:
+                axes.plot(x_indexes, self.df[feat], label=feat)
+
+        # Customize the plot
+        axes.grid(True)
+        axes.set_xticks(x_ticks)
+        axes.set_xticklabels(x_labs_plot)
+        axes.tick_params(axis="x", rotation=70)
+        axes.legend(ncol=5)
+
+        # Show the plot
+        plt.show()

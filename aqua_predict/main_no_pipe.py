@@ -29,9 +29,7 @@ if __name__ == "__main__":
     y_all = np.array(data[COL_TAR])
 
     # Scaling all input data
-    scaler = preprocessing.QuantileTransformer(
-        n_quantiles=len(x_indexes_train), random_state=0
-    )
+    scaler = preprocessing.StandardScaler()
     x_all_scaled = scaler.fit_transform(x_all)
 
     # Splitting training and test data

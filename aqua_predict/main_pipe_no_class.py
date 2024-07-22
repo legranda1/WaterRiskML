@@ -64,14 +64,14 @@ if __name__ == "__main__":
                 kernel = (ConstantKernel(constant_value=1.0,
                                          constant_value_bounds=(0.1, 10.0))
                           * Matern(nu=nu, length_scale=1.0,
-                                   length_scale_bounds=(1e-2, 1e3))
+                                   length_scale_bounds=(1e-3, 1e3))
                           + WhiteKernel(noise_level=1e-5,
                                         noise_level_bounds=(1e-10, 1e1)))
             else:
                 kernel = (ConstantKernel(constant_value=1.0,
                                          constant_value_bounds=(0.1, 10.0))
                           * Matern(nu=nu, length_scale=1.0,
-                                   length_scale_bounds=(1e-2, 1e3)))
+                                   length_scale_bounds=(1e-3, 1e3)))
 
             gp = GaussianProcessRegressor(kernel=kernel,
                                           n_restarts_optimizer=50,
@@ -83,7 +83,7 @@ if __name__ == "__main__":
                 n_quantiles=len(x_indexes_train), random_state=0
             )
             pipe = Pipeline([("scaler", scaler), ("gp", gp)])
-            pipe.fit(x_all, y_all)
+            pipe.fit(x_train, y_train)
             print(f"initial kernel: {pipe[1].kernel}")
             print(f"kernel learned: {pipe[1].kernel_}")
             print(f"scaler: {scaler}")

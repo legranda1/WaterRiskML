@@ -63,9 +63,7 @@ if __name__ == "__main__":
               + WhiteKernel(noise_level=1e-5,
                             noise_level_bounds=(1e-10, 1e1)))
 
-    scaler = preprocessing.QuantileTransformer(
-        n_quantiles=len(x_indexes_train), random_state=0
-    )
+    scaler = preprocessing.StandardScaler()
 
     gpr = GPR(kernel=kernel, scaler=scaler)
 
