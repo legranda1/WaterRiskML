@@ -55,7 +55,7 @@ if __name__ == "__main__":
     print(f"kernel learned: {gp.kernel_}")
     print(f"scaler: {scaler}")
     print(f"marginal log likelihood: {gp.log_marginal_likelihood_value_}")
-    print(f"NSE: {gp.score(x_test_scaled, y_test)}")
+    print(f"R2: {gp.score(x_test_scaled, y_test)}")
     y_pred_test = gp.predict(x_test_scaled)
     print(f"RMSE: {root_mean_squared_error(y_test, y_pred_test)}")
     print(f"MAE: {mean_absolute_error(y_test, y_pred_test)}")

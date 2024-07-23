@@ -22,7 +22,7 @@ class GPR:
         self._scaler = scaler     # Private attribute for scaler
         self.kernel = kernel
         self.feats = feats
-        self.nse = None           # The Nash-Sutcliffe model efficiency coefficient of the model
+        self.r2 = None            # The Nash-Sutcliffe model efficiency coefficient of the model
         self.marg_lh = None       # The marginal likelihood of the model
         self.rmse = None          # The root mean squared error of the model
         self.mae = None           # The mean absolute error of the model
@@ -105,8 +105,7 @@ class GPR:
             f"kernel: {self.kernel}",
             f"scaler: {self.scaler}",
             f"features: {self.feats}",
-            f"pipe: {self.pipe}",
-            f"NSE: {self.nse}" if self.nse is not None else "",
+            f"R2: {self.r2}" if self.r2 is not None else "",
             f"log marginal likelihood: {self.marg_lh}" if self.marg_lh is not None else "",
             f"RMSE: {self.rmse}" if self.rmse is not None else "",
             f"MAE: {self.mae}" if self.mae is not None else ""

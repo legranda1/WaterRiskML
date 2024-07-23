@@ -82,7 +82,7 @@ if __name__ == "__main__":
             print(f"scaler: {scaler}")
             print(f"marginal log likelihood:"
                   f" {pipe[1].log_marginal_likelihood_value_}")
-            print(f"NSE: {pipe.score(x_test, y_test)}")
+            print(f"R2: {pipe.score(x_test, y_test)}")
             y_pred_test = pipe.predict(x_test)
             print(f"RMSE: {root_mean_squared_error(y_test, y_pred_test)}")
             print(f"MAE: {mean_absolute_error(y_test, y_pred_test)}\n")

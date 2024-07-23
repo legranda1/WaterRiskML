@@ -42,8 +42,8 @@ def col_combos(cols, min_len=1):
     for n in range(min_len, max_len + 1):
         # Generate combinations of the current length and convert them
         # to numpy arrays of type int8
-        col_feats.extend(np.array(combo, dtype=np.int8)
-                         for combo in combinations(cols, n))
+        for combo in combinations(cols, n):
+            col_feats.append(np.array(combo, dtype=np.int8))
     # Return the list of column combinations
     return col_feats
 
@@ -69,7 +69,7 @@ def fit_and_test(iter_params):
     # Record the start time of the iteration
     start_time = time.time()
     print(f"Iteration = {cnt_i + 1}")
-    print(params)
+    print(f"{params}\n")
 
     # Get the pipeline from the parameters
     pipeline = params.pipe
@@ -84,7 +84,7 @@ def fit_and_test(iter_params):
     predictions = pipeline.predict(features[test_idx])
 
     # Calculate performance metrics and update the parameter object
-    params.nse = pipeline.score(features[test_idx], targets[test_idx])
+    params.r2 = pipeline.score(features[test_idx], targets[test_idx])
     params.rmse = root_mean_squared_error(targets[test_idx], predictions)
     params.mae = mean_absolute_error(targets[test_idx], predictions)
     params.marg_lh = gp.log_marginal_likelihood_value_
@@ -194,7 +194,7 @@ if __name__ == "__main__":
                                   * Matern(nu=nu, length_scale=1.0,
                                            length_scale_bounds=(1e-3, 1e3)))
 
-                    results_feats.extend((GPR(kernel=kernel, scaler=scaler,
+                    results_feats.append((GPR(kernel=kernel, scaler=scaler,
                                               feats=comb_feat, idx=counter),
                                           x_all[:, comb_feat],
                                           y_all, x_indexes_train,
@@ -216,8 +216,8 @@ if __name__ == "__main__":
             # Retrieve results from asynchronous processing
             # (i.e., objects of GPRPars())
             final_results = result.get()
-            # Extract NSE scores from each parameter set
-            NSE_S = np.array([par_set.nse for par_set in final_results])
+            # Extract R2 scores from each parameter set
+            r2_scores = np.array([par_set.r2 for par_set in final_results])
         else:
             # Handle case where GPR approach failed
             print("\n\nGPR approach went wrong!")
@@ -226,13 +226,13 @@ if __name__ == "__main__":
     end_time = time.time()
 
     # Get the best
-    best_index = NSE_S.argmax()  # Find the index of the best NSE score
+    best_index = r2_scores.argmax()  # Find the index of the best R2 score
     # Get the parameter set corresponding to the best score
     par_set = final_results[best_index]
     # Print the index of the best iteration
     print(f"\nBest iteration: {best_index}")
-    # Print the best NSE score
-    print(f"Best NSE score: {NSE_S[best_index]}")
+    # Print the best R2 score
+    print(f"Best R2 score: {r2_scores[best_index]}")
     print(par_set)  # Print the best parameter set
     total_time = end_time - init_time
     # Print the running time in seconds and as a timedelta
