@@ -1,13 +1,25 @@
+# Import the os module for interacting with the operating system
+import os
+import time
+import datetime
+# Importing pickle for serializing (converting Python objects to a byte
+# stream)  and deserializing (reconstructing Python objects from a byte
+# stream). This is useful for saving Python objects to a file or
+# transferring them over a network.
+import pickle
+# Import the Pool class from the multiprocessing module to handle
+# parallel processing
+from multiprocessing import Pool
 import numpy as np
 from config import *
-from data import *
+from data import DataManager
 from fun import *
-from plot import *
+from plot import PlotGPR
 from gpr import GPR
 from sklearn import preprocessing
+# Importing combinations from itertools for generating
+# combinations of elements
 from itertools import combinations
-from sklearn.gaussian_process import GaussianProcessRegressor
-from sklearn.pipeline import Pipeline
 from sklearn.gaussian_process.kernels import (ConstantKernel, Matern,
                                               WhiteKernel)
 from sklearn.metrics import root_mean_squared_error, mean_absolute_error
@@ -16,9 +28,11 @@ from sklearn.metrics import root_mean_squared_error, mean_absolute_error
 def col_combos(cols, min_len=1):
     """
     Generate combinations of input columns with varying lengths.
-    :param cols: LIST of input column indices.
-    :param min_len: INT representing the minimum number of columns to combine. Default is 1.
-    :return: A LIST of numpy arrays, each containing a combination of column indices.
+    :param cols: LIST of input column indices
+    :param min_len: INT representing the minimum number of columns
+    to combine (Default is 1)
+    :return: A LIST of numpy arrays, each containing a combination
+    of column indices
     """
     # Determine the maximum number of columns that can be combined
     max_len = len(cols)
@@ -26,11 +40,67 @@ def col_combos(cols, min_len=1):
     col_feats = []
     # Generate combinations for each length from min_len to max_len
     for n in range(min_len, max_len + 1):
-        # Generate combinations of the current length and convert them to numpy arrays of type int8
+        # Generate combinations of the current length and convert them
+        # to numpy arrays of type int8
         col_feats.extend(np.array(combo, dtype=np.int8)
                          for combo in combinations(cols, n))
     # Return the list of column combinations
     return col_feats
+
+
+def fit_and_test(iter_params):
+    """
+    Fits a machine learning pipeline and tests its performance on
+    given data.
+    :param iter_params: A TUPLE containing parameters (object),
+    features (np.array),
+    targets (np.array), training and testing indices (np.array)
+    :return: The parameter object with updated performance metrics
+    """
+    # Unpack the tuple
+    cnt_i = iter_params[0].idx  # Iteration counter
+    # Parameters (kernel, scaler, features, indexes, pipe, etc.)
+    params = iter_params[0]
+    features = iter_params[1]
+    targets = iter_params[2]
+    train_idx = iter_params[3]
+    test_idx = iter_params[4]
+
+    # Record the start time of the iteration
+    start_time = time.time()
+    print(f"Iteration = {cnt_i + 1}")
+    print(params)
+
+    # Get the pipeline from the parameters
+    pipeline = params.pipe
+
+    # Fit the pipeline to the training data
+    pipeline.fit(features[train_idx], targets[train_idx])
+
+    # Get the GaussianProcessRegressor from the pipeline
+    gp = pipeline[1]
+
+    # Predict the target values for the testing data
+    predictions = pipeline.predict(features[test_idx])
+
+    # Calculate performance metrics and update the parameter object
+    params.nse = pipeline.score(features[test_idx], targets[test_idx])
+    params.rmse = root_mean_squared_error(targets[test_idx], predictions)
+    params.mae = mean_absolute_error(targets[test_idx], predictions)
+    params.marg_lh = gp.log_marginal_likelihood_value_
+
+    # Record the end time of the approach
+    end_time = time.time()
+
+    # Print the learned kernel and iteration details
+    print(f"Kernel learned: {gp.kernel_}")
+    print(params)
+    print(f"Iteration time: {end_time - start_time:.2f} seconds")
+    print("\n")
+
+    # Return the updated parameter object
+    return params
+
 
 if __name__ == "__main__":
     # Record the initial time for tracking script duration
@@ -51,9 +121,12 @@ if __name__ == "__main__":
     DIR_OUT_DATA = "../output_data"
 
     # System Configuration: CPU Allocation and Data Chunking
-    N_CPUS = 8   # Number of CPU cores used, impacting the speed and efficiency of parallel processing.
-    CHUNK_SIZE = None  # Controls the size of data units processed at a time (per CPU),
+    # Number of CPU cores used, impacting the speed and efficiency
+    # of parallel processing.
+    NUMBER_CPUS = 8
+    # Controls the size of data units processed at a time (per CPU),
     # affecting load balancing and processing efficiency in parallel tasks
+    CHUNK_SIZE = None
     # CHUNK_SIZE = 100
 
     # Load and filter the data
@@ -64,13 +137,18 @@ if __name__ == "__main__":
     x_all = np.array(data[COL_FEAT])
     y_all = np.array(data[COL_TAR])
 
+    # Extraction of important data from the x-axis
+    x_indexes = np.arange(x_all.shape[0])  # X-axis indexes
+    x_indexes_train, x_indexes_test = split_data(x_indexes, 0.7)
+
     # Splitting training and test data
     x_train, x_test = split_data(x_all, 0.7)
     y_train, y_test = split_data(y_all, 0.7)
 
     number_cols = len(COL_FEAT)  # Number of feature columns
     indexes_cols = np.arange(number_cols)  # Array of column indices
-    comb_feats = col_combos(indexes_cols)  # Generate combinations of input columns with varying lengths.
+    # Generate combinations of input columns with varying lengths.
+    comb_feats = col_combos(indexes_cols)
 
     # List of the most popular scalers for preprocessing
     pop_scalers = [preprocessing.StandardScaler(),
@@ -89,13 +167,19 @@ if __name__ == "__main__":
     noise_s = ["Yes", "No"]
 
     # nu recommended values for the Matern kernel
-    nu_s = [0.5, 1.5, 2.5, np.inf]  # For nu=inf, the kernel becomes equivalent to the RBF kernel
+    # For nu=inf, the kernel becomes equivalent to the RBF kernel
+    nu_s = [0.5, 1.5, 2.5, np.inf]
 
-    results_feats = []  # Initialize an empty list for storing results of features
-    counter = 0  # Initialize the iteration counter
-    for comb_feat in comb_feats:  # Iterate over each combination of feature columns
-        for scaler in scalers:  # Iterate over each scaler within the scalers list
-            for noise in noise_s:  # Iterate over the noise switch (Yes/No)
+    # Initialize an empty list for storing results of features
+    results_feats = []
+    # Initialize the iteration counter
+    counter = 0
+    # Iterate over each combination of feature columns
+    for comb_feat in comb_feats:
+        # Iterate over each scaler within the scalers list
+        for scaler in scalers:
+            # Iterate over the noise switch (Yes/No)
+            for noise in noise_s:
                 for nu in nu_s:  # Iterate over each nu value
                     if noise == "Yes":  # If noise is to be added
                         kernel = (ConstantKernel(constant_value=1.0,
@@ -110,44 +194,47 @@ if __name__ == "__main__":
                                   * Matern(nu=nu, length_scale=1.0,
                                            length_scale_bounds=(1e-3, 1e3)))
 
-                    results_feats.extend([GPR(kernel=kernel, scaler=scaler,
+                    results_feats.extend((GPR(kernel=kernel, scaler=scaler,
                                               feats=comb_feat, idx=counter),
-                                          x_all[:, comb_feats],
-                                          y_all, x_train, x_test])  # Ojo con los dos ultimos 
+                                          x_all[:, comb_feat],
+                                          y_all, x_indexes_train,
+                                          x_indexes_test))
 
                     counter += 1
 
-    results_iter =  results_feats
+    results_iter = results_feats
 
+    # Use multiprocessing Pool to distribute tasks across NUMBER_CPUS
+    with Pool(NUMBER_CPUS) as pool:
+        # Apply fit_and_test function to each tuple
+        # in results_iter asynchronously
+        result = pool.map_async(fit_and_test, results_iter,
+                                chunksize=CHUNK_SIZE)
+        result.wait()
+        # Check if all processes were successful
+        if result.successful():
+            # Retrieve results from asynchronous processing
+            # (i.e., objects of GPRPars())
+            final_results = result.get()
+            # Extract NSE scores from each parameter set
+            NSE_S = np.array([par_set.nse for par_set in final_results])
+        else:
+            # Handle case where GPR approach failed
+            print("\n\nGPR approach went wrong!")
 
+    # Record the end time of the approach
+    end_time = time.time()
 
-                    """
-                    gp = GaussianProcessRegressor(kernel=kernel,
-                                                  n_restarts_optimizer=50,
-                                                  random_state=42,
-                                                  normalize_y=True,
-                                                  alpha=1e-10)
-
-                    pipe = Pipeline([("scaler", scaler), ("gp", gp)])
-                    pipe.fit(x_train, y_train)
-                    print(f"initial kernel: {pipe[1].kernel}")
-                    print(f"kernel learned: {pipe[1].kernel_}")
-                    print(f"scaler: {scaler}")
-                    print(f"marginal log likelihood:"
-                          f" {pipe[1].log_marginal_likelihood_value_}")
-                    print(f"R2 (coefficient of determination):"
-                          f" {pipe.score(x_test, y_test)}")
-                    y_pred_test = pipe.predict(x_test)
-                    print(f"RMSE: {root_mean_squared_error(y_test, y_pred_test)}")
-                    print(f"MAE: {mean_absolute_error(y_test, y_pred_test)}\n")
-                    y_mean, y_cov = pipe.predict(x_all, return_cov=True)
-
-                    # Create plotter instance and plot
-                    plotter = PlotGPR(data, f"GPR with {pipe[1].kernel_}",
-                                      "Time [Month/Year]",
-                                      "Monthly per capita water consumption [L/(C*d)]",
-                                      1.96,
-                                      fig_size=(12, 6))
-                    plotter.plot(y_train, y_test, y_mean, y_cov)
-                    """
-
+    # Get the best
+    best_index = NSE_S.argmax()  # Find the index of the best NSE score
+    # Get the parameter set corresponding to the best score
+    par_set = final_results[best_index]
+    # Print the index of the best iteration
+    print(f"\nBest iteration: {best_index}")
+    # Print the best NSE score
+    print(f"Best NSE score: {NSE_S[best_index]}")
+    print(par_set)  # Print the best parameter set
+    total_time = end_time - init_time
+    # Print the running time in seconds and as a timedelta
+    print(f"Running time: \n{total_time:5.3f} seconds /"
+          f" {datetime.timedelta(seconds=total_time)}")
