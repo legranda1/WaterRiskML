@@ -2,6 +2,7 @@ import matplotlib.pyplot as plt
 import matplotlib.cm as cm
 import numpy as np
 import seaborn as sns
+from fun import *
 
 
 class PlotBp:
@@ -165,83 +166,74 @@ class PlotCorr:
 
 
 class PlotGPR:
-    def __init__(self, title="GPR", xlabel="Time", ylabel="Water Demand",
-                 std=1.96, fig_size=(14, 6)):
+    def __init__(self, df=None, title="GPR", xlabel="Time",
+                 ylabel="Water Demand", std=1.96, fig_size=(14, 6)):
         """
         Initialize the PlotGPR class.
+        :param df: PD.DATAFRAME containing the data
         :param title: STR with the title of the GPR
         :param xlabel: STR with the X-axis label
         :param ylabel: STR with the Y-axis label
         :param std: FLOAT with the standard deviation value
         :param fig_size: TUPLE with the figure size for the plot
         """
+        self.df = df
         self.title = title
         self.xlabel = xlabel
         self.ylabel = ylabel
         self.std = std
-        self.figure, self.axes = plt.subplots(figsize=fig_size)
+        self.figure_size = fig_size
 
-    def set_xticks(self, ticks, labels):
-        """
-        Sets the x-axis ticks and labels
-        :param ticks: NP.ARRAY with the positions of the ticks on the
-        x-axis
-        :param labels: NP.ARRAY with labels corresponding to the tick
-        positions
-        :return: None
-        """
-        self.axes.set_xticks(ticks)
-        self.axes.set_xticklabels(labels)
-
-    def plot(self, x_indexes_train, y_train, x_indexes_test, y_test,
-             x_indexes, y_mean, y_cov, x_ticks, x_labs_plot):
+    def plot(self, y_train, y_test, y_mean, y_cov):
         """
         Plots the knowing data points, GPR predictions, and uncertainty
         intervals.
-        :param x_indexes_train: NP.ARRAY with indices for the training
-        data points on the x-axis
         :param y_train: NP.ARRAY with target values corresponding to
         the training data points
-        :param x_indexes_test: NP.ARRAY with indices for the test data
-        points on the x-axis
         :param y_test: NP.ARRAY with target values corresponding to the
         test data points
-        :param x_indexes: NP.ARRAY with indexes for all data points on
-        the x-axis
         :param y_mean: NP.ARRAY with predicted mean values for all data
         points
         :param y_cov: 2D NP.ARRAY containing the covariance matrix for
         the predicted values
-        :param x_ticks: NP.ARRAY with positions of x-axis ticks
-        :param x_labs_plot: NP.ARRAY with labels corresponding to the
-        x-axis ticks
         :return: None
         """
+        plt.figure(figsize=self.figure_size)  # Create a new figure
+        axes = plt.gca()  # Get current axes
+
+        # Extraction of important data from the x-axis for plotting
+        x_labels = np.array(self.df["Monat/Jahr"])  # All X-axis time labels
+        x_indexes = np.arange(x_labels.shape[0])  # X-axis indexes
+        x_indexes_train, x_indexes_test = split_data(x_indexes, 0.7)
+        x_ticks = np.arange(0, len(x_indexes), 6)  # X ticks for plotting
+        x_labs_plot = x_labels[x_ticks]  # X labels for plotting
+
         # Set the title and labels
-        self.axes.set_title(self.title)
-        self.axes.set_xlabel(self.xlabel)
-        self.axes.set_ylabel(self.ylabel)
+        axes.set_title(self.title)
+        axes.set_xlabel(self.xlabel)
+        axes.set_ylabel(self.ylabel)
 
         # Plot knowing data points
-        self.axes.scatter(x_indexes_train, y_train, c="k", s=15,
-                          zorder=10, marker="x")
-        self.axes.scatter(x_indexes_test, y_test, c="r", s=15,
-                          zorder=10, edgecolors=(0, 0, 0))
+        axes.scatter(x_indexes_train, y_train, c="k", s=15,
+                     zorder=10, marker="x")
+        axes.scatter(x_indexes_test, y_test, c="r", s=15,
+                     zorder=10, edgecolors=(0, 0, 0))
 
         # Plot predictions and uncertainty
-        self.axes.plot(x_indexes, y_mean, "C0", lw=1.5, zorder=9)
-        self.axes.fill_between(x_indexes,
-                               y_mean - self.std * np.sqrt(np.diag(y_cov)),
-                               y_mean + self.std * np.sqrt(np.diag(y_cov)),
-                               color="C0", alpha=0.2)
+        axes.plot(x_indexes, y_mean, "C0", lw=1.5, zorder=9)
+        axes.fill_between(x_indexes,
+                          y_mean - self.std * np.sqrt(np.diag(y_cov)),
+                          y_mean + self.std * np.sqrt(np.diag(y_cov)),
+                          color="C0", alpha=0.2)
 
         # Customize the plot
-        self.axes.grid(True)
-        self.axes.tick_params(axis="x", rotation=70)
-        self.axes.legend(["Training Data", "Test Data",
-                          "GP Mean",
-                          f"GP conf interval ({self.std} std)"])
-        self.set_xticks(x_ticks, x_labs_plot)
+        axes.grid(True)
+        axes.set_xticks(x_ticks)
+        axes.set_xticklabels(x_labs_plot)
+        axes.tick_params(axis="x", rotation=70)
+        axes.legend(["Training Data", "Test Data",
+                     "GP Mean",
+                     f"GP conf interval ({self.std} std)"])
 
         # Show the plot
         plt.show()

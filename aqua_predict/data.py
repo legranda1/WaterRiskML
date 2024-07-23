@@ -274,6 +274,9 @@ class DataManager(PlotBp, PlotCorr):
 
 
 if __name__ == "__main__":
+    # Record the initial time for tracking script duration
+    init_time = time.time()
+
     # File names
     FNAME = "Auswertung WV14 Unteres Elsenztal.xlsx"
     # FNAME = "Auswertung WV25 SW Füssen.xlsx"
@@ -291,9 +294,6 @@ if __name__ == "__main__":
     SHOW_CLEAN_TIMESERIES = True
     SHOW_CLEAN = False
     SHOW_CLEAN_CORR = False
-
-    # Record the initial time for tracking script duration
-    init_time = time.time()
 
     try:
         # Instantiate an object of the DataManager class

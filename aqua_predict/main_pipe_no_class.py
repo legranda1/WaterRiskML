@@ -34,15 +34,8 @@ if __name__ == "__main__":
     # FNAME = "Auswertung WV69 SW Landshut.xlsx"
 
     # Load and filter the data
-    # data = DataManager(xlsx_file_name=FNAME).filter_data()
-    data = DataManager(xlsx_file_name=FNAME).iterative_cleaning(COL_ALL)
-
-    # Extraction of important data from the x-axis for plotting
-    x_labels = np.array(data["Monat/Jahr"])  # All X-axis time labels
-    x_indexes = np.arange(x_labels.shape[0])  # X-axis indexes
-    x_indexes_train, x_indexes_test = split_data(x_indexes, 0.7)
-    x_ticks = np.arange(0, len(x_indexes), 6)  # X ticks for plotting
-    x_labs_plot = x_labels[x_ticks]  # X labels for plotting
+    data = DataManager(xlsx_file_name=FNAME).filter_data()
+    # data = DataManager(xlsx_file_name=FNAME).iterative_cleaning(COL_ALL)
 
     # Extraction of all input and output data
     x_all = np.array(data[COL_FEAT])
@@ -80,7 +73,7 @@ if __name__ == "__main__":
                                           alpha=1e-10)
 
             scaler = preprocessing.QuantileTransformer(
-                n_quantiles=len(x_indexes_train), random_state=0
+                n_quantiles=92, random_state=0
             )
             pipe = Pipeline([("scaler", scaler), ("gp", gp)])
             pipe.fit(x_train, y_train)
@@ -97,10 +90,9 @@ if __name__ == "__main__":
             y_mean, y_cov = pipe.predict(x_all, return_cov=True)
 
             # Create plotter instance and plot
-            plotter = PlotGPR(f"GPR with {pipe[1].kernel_}",
+            plotter = PlotGPR(data, f"GPR with {pipe[1].kernel_}",
                               "Time [Month/Year]",
                               "Monthly per capita water consumption [L/(C*d)]",
                               1.96,
                               fig_size=(12, 6))
-            plotter.plot(x_indexes_train, y_train, x_indexes_test, y_test,
-                         x_indexes, y_mean, y_cov, x_ticks, x_labs_plot)
+            plotter.plot(y_train, y_test, y_mean, y_cov)
