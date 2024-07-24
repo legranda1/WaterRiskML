@@ -42,7 +42,8 @@ class PlotBp:
         """
         Generate and display a boxplot for the specified features
         :param features: LIST of strings with the specified features
-        :param units: LIST of strings with the units corresponding to each feature
+        :param units: LIST of strings with the units corresponding to
+        each feature
         :return: None
         """
         plt.figure(figsize=self.fig_size)  # Create a new figure
@@ -58,7 +59,8 @@ class PlotBp:
         if isinstance(units, str):
             units = [units]
         # Ensure features and units lists are the same length
-        assert len(features) == len(units), "Features and units must have the same length"
+        assert len(features) == len(units), ("Features and units must have"
+                                             " the same length")
 
         # .values on a pandas Series returns a NP.ARRAY containing
         # the underlying data of that Series
@@ -85,9 +87,12 @@ class PlotBp:
 
         # Add unit labels below the feature labels
         for i, (feature, unit) in enumerate(zip(features, units), start=1):
-            axes.annotate(unit, xy=(i, -0.05), xycoords=("data", "axes fraction"),
+            axes.annotate(unit,
+                          xy=(i, -0.05),
+                          xycoords=("data", "axes fraction"),
                           xytext=(0, -15), textcoords="offset points",
-                          ha="center", va="bottom", fontsize=10, color="black")
+                          ha="center", va="bottom",
+                          fontsize=10, color="black")
 
         plt.show()
 
@@ -98,7 +103,6 @@ class PlotCorr:
         Initialize the PlotCorr class.
         :param df: PD.DATAFRAME containing the filtered data
         :param title: STR with the title of the heatmap
-        :param fig_size: TUPLE with the figure size for the plot
         """
         self.df = df
         self.title = title
@@ -189,7 +193,7 @@ class PlotGPR:
         self.fig = None   # Figure object
         self.axes = None  # Axes object
 
-    def plot(self, y_train, y_test, y_mean, y_cov, r2=None):
+    def plot(self, y_train, y_test, y_mean, y_cov, r2=None, file_name=None):
         """
         Plots the knowing data points, GPR predictions, and uncertainty
         intervals.
@@ -203,6 +207,7 @@ class PlotGPR:
         the predicted values
         :param r2: FLOAT with the coefficient of determination of the
         area of validation
+        :param file_name: STR with the name of the file to save the plot
         :return: None
         """
         self.fig, self.axes = plt.subplots(figsize=self.figure_size)
@@ -244,31 +249,25 @@ class PlotGPR:
         # Extract the font size from the legend
         fontsize = legend.get_texts()[0].get_fontsize()
 
-        # Add R2 text in the upper right corner
-        textstr = f"$R^2 = {r2:.2f}$"
-        self.axes.text(0.87, 0.95, textstr, transform=self.axes.transAxes,
-                       fontsize=fontsize, verticalalignment="top",
-                       horizontalalignment="right",
-                       bbox=dict(facecolor='white', alpha=0.2))
+        if r2 is not None:
+            # Add R2 text in the upper right corner
+            textstr = f"$R^2 = {r2:.2f}$"
+            self.axes.text(0.87, 0.95, textstr, transform=self.axes.transAxes,
+                           fontsize=fontsize, verticalalignment="top",
+                           horizontalalignment="right",
+                           bbox=dict(facecolor='white', alpha=0.2))
 
         # Add a vertical hashed line at the beginning of the test data
-        self.axes.axvline(x=x_indexes_test[0], color='k', linestyle='--', linewidth=1)
+        self.axes.axvline(x=x_indexes_test[0], color="k",
+                          linestyle="--", linewidth=1)
 
-        # Show the plot
-        plt.show()
-
-    def save(self, file_name):
-        """
-        Save the current plot to a file.
-        :param file_name: STR with the name of the file to save the plot
-        :return: None
-        """
-        if self.fig:
+        if file_name:
             self.fig.savefig(file_name, dpi=self.dpi,
                              bbox_inches="tight", pad_inches=0.25)
+            plt.close(self.fig)
         else:
-            raise RuntimeError("No plot has been created yet."
-                               " Please call the plot method before saving.")
+            # Show the plot
+            plt.show()
 
 
 class PlotTS:

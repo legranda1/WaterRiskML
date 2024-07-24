@@ -7,6 +7,96 @@ from plot import PlotBp, PlotCorr, PlotTS
 from config import *
 
 
+def identify_outliers(feature, data):
+    """
+    Identify outliers in a numerical dataset using the IQR method
+    :param feature: STR with the name of the feature column or dataset
+    in which to extract the outliers
+    :param data: PD.DATAFRAME with the dataset to clean
+    :return: NP.ARRAY containing the outliers
+    """
+    study_data = data[feature].values  # Gives a np.array
+
+    # Calculate Q1 (25th percentile) and Q3 (75th percentile)
+    q25, q75 = (np.percentile(study_data, 25),
+                np.percentile(study_data, 75))
+    iqr_value = q75 - q25
+
+    # Calculate the outlier bounds
+    lower_bound = q25 - 1.5 * iqr_value
+    upper_bound = q75 + 1.5 * iqr_value
+
+    # Identify outliers by using "boolean indexing"
+    study_outliers = study_data[
+        (study_data < lower_bound) | (study_data > upper_bound)
+    ]
+    return study_outliers
+
+
+def clean_data(feature, data):
+    """
+    Cleans the data by removing outliers from the specified feature.
+    :param data: PD.DATAFRAME with the dataset to clean
+    :param feature: STR with the name of the feature column or dataset
+    in which to extract the outliers
+    :return: PD.DATAFRAME containing the data without outliers
+    """
+    if isinstance(feature, str):
+        # Convert to list if a single feature is provided
+        feature = [feature]
+
+    # Remove rows where any of the feature columns contain outlier values
+    for feat in feature:
+        if feat not in ("Heiße Tage", "Sommertage", "Eistage"):
+            # Identify outlier values for the current feature
+            outliers_values = identify_outliers(feat, data)
+            # Remove rows where the current feature column contains outlier values
+            data = data[~data[feat].isin(outliers_values)]
+
+    # Return the cleaned data
+    return data
+
+
+def plot_boxplot(feats, units, data):
+    """
+    Plots a boxplot according to the respective features.
+    :param feats: STR or LIST with the feature(s) to investigate for plotting.
+    :param units: LIST with the units corresponding to each feature.
+    :param data: PD.DATAFRAME with the dataset to plot
+    :return: A boxplot object
+    """
+    boxplot = PlotBp(data, title=f"Boxplot",
+                     ylabel="Ranges", fig_size=(12, 6))
+    return boxplot.plot(feats, units)
+
+
+def plot_heatmap(data, feat1=None, feat2=None):
+    """
+    Plots a correlation coefficient heatmap for the
+    specified features.
+    :param data: PD.DATAFRAME with the dataset to plot
+    :param feat1: STR of the target variable (output)
+    :param feat2: LIST of strings of feature names (inputs)
+    :return: A heatmap
+    """
+    corr_matrix = data[[feat1] + feat2].corr()
+    hm = PlotCorr(corr_matrix, title="Correlation heatmap")
+    return hm.plot_hm()
+
+
+def plot_pairplot(data, feat1=None, feat2=None):
+    """
+    Plots a correlation pairplot for the specified features.
+    :param data: PD.DATAFRAME with the dataset to plot
+    :param feat1: STR of the target variable (output)
+    :param feat2: LIST of strings of feature names (inputs)
+    :return: A pairplot
+    """
+    corr_matrix = data[[feat1] + feat2]
+    pp = PlotCorr(corr_matrix, title="Correlation pairplot")
+    return pp.plot_pp()
+
+
 class DataManager(PlotBp, PlotCorr):
     def __init__(self,
                  xlsx_file_name="Auswertung WV14 Unteres Elsenztal.xlsx",
@@ -117,29 +207,6 @@ class DataManager(PlotBp, PlotCorr):
 
         return filtered_df
 
-    def clean_data(self, feature, data):
-        """
-        Cleans the data by removing outliers from the specified feature.
-        :param data: PD.DATAFRAME with the dataset to clean
-        :param feature: STR with the name of the feature column or dataset
-        in which to extract the outliers
-        :return: PD.DATAFRAME containing the data without outliers
-        """
-        if isinstance(feature, str):
-            # Convert to list if a single feature is provided
-            feature = [feature]
-
-        # Remove rows where any of the feature columns contain outlier values
-        for feat in feature:
-            if feat not in ("Heiße Tage", "Sommertage", "Eistage"):
-                # Identify outlier values for the current feature
-                outliers_values = self.identify_outliers(feat, data)
-                # Remove rows where the current feature column contains outlier values
-                data = data[~data[feat].isin(outliers_values)]
-
-        # Return the cleaned data
-        return data
-
     def iterative_cleaning(self, feature):
         """
          Iteratively cleans the data to remove outliers from the specified feature.
@@ -152,38 +219,13 @@ class DataManager(PlotBp, PlotCorr):
         while True:
             initial_len = len(data)
             # Clean the data to remove outliers from the specified feature
-            data = self.clean_data(feature, data)
+            data = clean_data(feature, data)
             # Check if the length of the data has not changed
             if len(data) == initial_len:
                 # No more outliers detected, break the loop
                 break
 
         return data
-
-    def identify_outliers(self, feature, data):
-        """
-        Identify outliers in a numerical dataset using the IQR method
-        :param feature: STR with the name of the feature column or dataset
-        in which to extract the outliers
-        :param data: PD.DATAFRAME with the dataset to clean
-        :return: NP.ARRAY containing the outliers
-        """
-        study_data = data[feature].values  # Gives a np.array
-
-        # Calculate Q1 (25th percentile) and Q3 (75th percentile)
-        q25, q75 = (np.percentile(study_data, 25),
-                    np.percentile(study_data, 75))
-        iqr_value = q75 - q25
-
-        # Calculate the outlier bounds
-        lower_bound = q25 - 1.5 * iqr_value
-        upper_bound = q75 + 1.5 * iqr_value
-
-        # Identify outliers by using "boolean indexing"
-        study_outliers = study_data[
-            (study_data < lower_bound) | (study_data > upper_bound)
-        ]
-        return study_outliers
 
     def print_outliers(self, feats, data, show_results=True):
         """
@@ -205,7 +247,7 @@ class DataManager(PlotBp, PlotCorr):
         # Iterate over each feature to identify and print outliers
         for feat in feats:
             if feat not in ("Heiße Tage", "Sommertage", "Eistage"):
-                outliers = self.identify_outliers(feat, data)
+                outliers = identify_outliers(feat, data)
                 # If there are outliers, increase the counter and
                 # optionally print them
                 if len(outliers) > 0:
@@ -220,43 +262,6 @@ class DataManager(PlotBp, PlotCorr):
         print(
             f"- There are a total number of {count_out} outliers "
             f"in the file {self.xlsx_file_name}\n")
-
-    def plot_boxplot(self, feats, units, data):
-        """
-        Plots a boxplot according to the respective features.
-        :param feats: STR or LIST with the feature(s) to investigate for plotting.
-        :param units: LIST with the units corresponding to each feature.
-        :param data: PD.DATAFRAME with the dataset to plot
-        :return: A boxplot object
-        """
-        boxplot = PlotBp(data, title=f"Boxplot",
-                         ylabel="Ranges", fig_size=(12, 6))
-        return boxplot.plot(feats, units)
-
-    def plot_heatmap(self, data, feat1=None, feat2=None):
-        """
-        Plots a correlation coefficient heatmap for the
-        specified features.
-        :param data: PD.DATAFRAME with the dataset to plot
-        :param feat1: STR of the target variable (output)
-        :param feat2: LIST of strings of feature names (inputs)
-        :return: A heatmap
-        """
-        corr_matrix = data[[feat1] + feat2].corr()
-        hm = PlotCorr(corr_matrix, title="Correlation heatmap")
-        return hm.plot_hm()
-
-    def plot_pairplot(self, data, feat1=None, feat2=None):
-        """
-        Plots a correlation pairplot for the specified features.
-        :param data: PD.DATAFRAME with the dataset to plot
-        :param feat1: STR of the target variable (output)
-        :param feat2: LIST of strings of feature names (inputs)
-        :return: A pairplot
-        """
-        corr_matrix = data[[feat1] + feat2]
-        pp = PlotCorr(corr_matrix, title="Correlation pairplot")
-        return pp.plot_pp()
 
     def plot_timeseries(self, data, feats):
         """
@@ -290,8 +295,8 @@ if __name__ == "__main__":
     # Flags
     SHOW_INIT_CORR = False
     SHOW_OUTLIERS = False
-    SHOW_INIT_TIMESERIES = True
-    SHOW_CLEAN_TIMESERIES = True
+    SHOW_INIT_TIMESERIES = False
+    SHOW_CLEAN_TIMESERIES = False
     SHOW_CLEAN = False
     SHOW_CLEAN_CORR = False
 
@@ -299,10 +304,24 @@ if __name__ == "__main__":
         # Instantiate an object of the DataManager class
         data_handler = DataManager(xlsx_file_name=FNAME)
         initial_data = data_handler.filter_data()
+        corr_matrix = initial_data[[COL_TAR] + COL_FEAT].corr()
+        print(corr_matrix)
+        mask = np.triu(np.ones_like(corr_matrix, dtype=bool), k=1)
+        lower_triangle_corr = corr_matrix.where(mask)
+        corr_long = lower_triangle_corr.stack().reset_index()
+        corr_long.columns = ["Feature 1", "Feature 2", "Correlation"]
+        corr_long["AbsCorrelation"] = corr_long["Correlation"].abs()
+        print(f"{corr_long}\n")
+        sorted_corr = corr_long.sort_values(by="AbsCorrelation")
+        print(f"{sorted_corr}\n")
+        threshold = 0.1
+        not_correlated = sorted_corr[sorted_corr["AbsCorrelation"] < threshold]
+        not_correlated_pairs = not_correlated[["Feature 1", "Feature 2"]]
+        print(not_correlated_pairs)
         cleaned_data = data_handler.iterative_cleaning(FEAT[0])
         if SHOW_INIT_CORR:
-            data_handler.plot_heatmap(initial_data, COL_TAR, COL_FEAT)
-            data_handler.plot_pairplot(initial_data, COL_TAR, COL_FEAT)
+            plot_heatmap(initial_data, COL_TAR, COL_FEAT)
+            plot_pairplot(initial_data, COL_TAR, COL_FEAT)
         if SHOW_INIT_TIMESERIES:
             data_handler.plot_timeseries(initial_data, COL_FEAT)
         if SHOW_CLEAN_TIMESERIES:
@@ -310,14 +329,14 @@ if __name__ == "__main__":
         if SHOW_OUTLIERS:
             print(initial_data)
             data_handler.print_outliers(FEAT[0], initial_data, show_results=True)
-            data_handler.plot_boxplot(FEAT[0], FEAT[1], initial_data)
+            plot_boxplot(FEAT[0], FEAT[1], initial_data)
         if SHOW_CLEAN:
             print(cleaned_data)
             data_handler.print_outliers(FEAT[0], cleaned_data, show_results=True)
-            data_handler.plot_boxplot(FEAT[0], FEAT[1], cleaned_data)
+            plot_boxplot(FEAT[0], FEAT[1], cleaned_data)
         if SHOW_CLEAN_CORR:
-            data_handler.plot_heatmap(cleaned_data, COL_TAR, COL_FEAT)
-            data_handler.plot_pairplot(cleaned_data, COL_TAR, COL_FEAT)
+            plot_heatmap(cleaned_data, COL_TAR, COL_FEAT)
+            plot_pairplot(cleaned_data, COL_TAR, COL_FEAT)
     except Exception as e:
         print(f"An error occurred: {e}")
 

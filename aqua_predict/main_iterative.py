@@ -287,8 +287,7 @@ if __name__ == "__main__":
                 print(f"Creation of {DIR_PLOTS}")
                 os.makedirs(DIR_PLOTS)
             PATH = f"{DIR_PLOTS}/best_gpr_found_in_{FNAME}.png"
-            plt.savefig(PATH, dpi=200,
-                        bbox_inches="tight", pad_inches=0.25)
+            plotter.plot(y_train, y_test, y_mean, y_cov, r2=r2_test, file_name=PATH)
 
     if SAVE_WORKSPACE and result.successful():
         workspace = {"best_par_set": best_par_set,
