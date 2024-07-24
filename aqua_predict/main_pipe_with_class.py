@@ -69,7 +69,8 @@ if __name__ == "__main__":
     print(f"scaler: {scaler}")
     print(f"log marginal likelihood (LML):"
           f" {gpr.pipe[1].log_marginal_likelihood_value_}")
-    print(f"R2_test: {gpr.pipe.score(x_test, y_test)}")
+    r2_test = gpr.pipe.score(x_test, y_test)
+    print(f"R2_test: {r2_test}")
     y_pred_test = gpr.pipe.predict(x_test)
     print(f"RMSE_test: {root_mean_squared_error(y_test, y_pred_test)}")
     print(f"MAE_test: {mean_absolute_error(y_test, y_pred_test)}")
@@ -81,5 +82,4 @@ if __name__ == "__main__":
                       "Monthly per capita water consumption [L/(C*d)]",
                       1.96,
                       fig_size=(12, 6), dpi=200)
-    plotter.plot(y_train, y_test, y_mean, y_cov)
-    plotter.save(file_name=f"best_gpr.png")
+    plotter.plot(y_train, y_test, y_mean, y_cov, r2=r2_test)

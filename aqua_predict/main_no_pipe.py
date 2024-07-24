@@ -56,7 +56,8 @@ if __name__ == "__main__":
     print(f"scaler: {scaler}")
     print(f"log marginal likelihood (LML):"
           f" {gp.log_marginal_likelihood_value_}")
-    print(f"R2_test: {gp.score(x_test_scaled, y_test)}")
+    r2_test = gp.score(x_test_scaled, y_test)
+    print(f"R2_test: {r2_test}")
     y_pred_test = gp.predict(x_test_scaled)
     print(f"RMSE_test: {root_mean_squared_error(y_test, y_pred_test)}")
     print(f"MAE_test: {mean_absolute_error(y_test, y_pred_test)}")
@@ -68,4 +69,4 @@ if __name__ == "__main__":
                       "Monthly per capita water consumption [L/(C*d)]",
                       1.96,
                       fig_size=(12, 6), dpi=200)
-    plotter.plot(y_train, y_test, y_mean, y_cov)
+    plotter.plot(y_train, y_test, y_mean, y_cov, r2=r2_test)

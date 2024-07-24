@@ -189,7 +189,7 @@ class PlotGPR:
         self.fig = None   # Figure object
         self.axes = None  # Axes object
 
-    def plot(self, y_train, y_test, y_mean, y_cov):
+    def plot(self, y_train, y_test, y_mean, y_cov, r2=None):
         """
         Plots the knowing data points, GPR predictions, and uncertainty
         intervals.
@@ -201,6 +201,8 @@ class PlotGPR:
         points
         :param y_cov: 2D NP.ARRAY containing the covariance matrix for
         the predicted values
+        :param r2: FLOAT with the coefficient of determination of the
+        area of validation
         :return: None
         """
         self.fig, self.axes = plt.subplots(figsize=self.figure_size)
@@ -235,9 +237,22 @@ class PlotGPR:
         self.axes.set_xticks(x_ticks)
         self.axes.set_xticklabels(x_labs_plot)
         self.axes.tick_params(axis="x", rotation=70)
-        self.axes.legend(["Training Data", "Test Data",
-                          "GP Mean",
-                          f"GP conf interval ({self.std} std)"])
+        legend = self.axes.legend(["Training Data", "Test Data",
+                                   "GP Mean",
+                                   f"GP conf interval ({self.std} std)"])
+
+        # Extract the font size from the legend
+        fontsize = legend.get_texts()[0].get_fontsize()
+
+        # Add R2 text in the upper right corner
+        textstr = f"$R^2 = {r2:.2f}$"
+        self.axes.text(0.87, 0.95, textstr, transform=self.axes.transAxes,
+                       fontsize=fontsize, verticalalignment="top",
+                       horizontalalignment="right",
+                       bbox=dict(facecolor='white', alpha=0.2))
+
+        # Add a vertical hashed line at the beginning of the test data
+        self.axes.axvline(x=x_indexes_test[0], color='k', linestyle='--', linewidth=1)
 
         # Show the plot
         plt.show()
