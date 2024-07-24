@@ -54,11 +54,12 @@ if __name__ == "__main__":
     print(f"initial kernel: {gp.kernel}")
     print(f"kernel learned: {gp.kernel_}")
     print(f"scaler: {scaler}")
-    print(f"marginal log likelihood: {gp.log_marginal_likelihood_value_}")
-    print(f"R2: {gp.score(x_test_scaled, y_test)}")
+    print(f"log marginal likelihood (LML):"
+          f" {gp.log_marginal_likelihood_value_}")
+    print(f"R2_test: {gp.score(x_test_scaled, y_test)}")
     y_pred_test = gp.predict(x_test_scaled)
-    print(f"RMSE: {root_mean_squared_error(y_test, y_pred_test)}")
-    print(f"MAE: {mean_absolute_error(y_test, y_pred_test)}")
+    print(f"RMSE_test: {root_mean_squared_error(y_test, y_pred_test)}")
+    print(f"MAE_test: {mean_absolute_error(y_test, y_pred_test)}")
     y_mean, y_cov = gp.predict(x_all_scaled, return_cov=True)
 
     # Create plotter instance and plot
@@ -66,5 +67,5 @@ if __name__ == "__main__":
                       "Time [Month/Year]",
                       "Monthly per capita water consumption [L/(C*d)]",
                       1.96,
-                      fig_size=(12, 6))
+                      fig_size=(12, 6), dpi=200)
     plotter.plot(y_train, y_test, y_mean, y_cov)

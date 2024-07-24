@@ -80,12 +80,12 @@ if __name__ == "__main__":
             print(f"initial kernel: {pipe[1].kernel}")
             print(f"kernel learned: {pipe[1].kernel_}")
             print(f"scaler: {scaler}")
-            print(f"marginal log likelihood:"
+            print(f"log marginal likelihood (LML):"
                   f" {pipe[1].log_marginal_likelihood_value_}")
-            print(f"R2: {pipe.score(x_test, y_test)}")
+            print(f"R2_test: {pipe.score(x_test, y_test)}")
             y_pred_test = pipe.predict(x_test)
-            print(f"RMSE: {root_mean_squared_error(y_test, y_pred_test)}")
-            print(f"MAE: {mean_absolute_error(y_test, y_pred_test)}\n")
+            print(f"RMSE_test: {root_mean_squared_error(y_test, y_pred_test)}")
+            print(f"MAE_test: {mean_absolute_error(y_test, y_pred_test)}\n")
             y_mean, y_cov = pipe.predict(x_all, return_cov=True)
 
             # Create plotter instance and plot
@@ -93,5 +93,5 @@ if __name__ == "__main__":
                               "Time [Month/Year]",
                               "Monthly per capita water consumption [L/(C*d)]",
                               1.96,
-                              fig_size=(12, 6))
+                              fig_size=(12, 6), dpi=200)
             plotter.plot(y_train, y_test, y_mean, y_cov)

@@ -19,13 +19,13 @@ class GPR:
         :param idx: Iteration counter as an index identifier.
         :param pipe: Optional pipeline object.
         """
-        self._scaler = scaler     # Private attribute for scaler
         self.kernel = kernel
+        self._scaler = scaler     # Private attribute for scaler
         self.feats = feats
-        self.r2 = None            # The Nash-Sutcliffe model efficiency coefficient of the model
         self.marg_lh = None       # The marginal likelihood of the model
-        self.rmse = None          # The root mean squared error of the model
-        self.mae = None           # The mean absolute error of the model
+        self.r2_test = None       # The Nash-Sutcliffe model efficiency coefficient of the validation area
+        self.rmse_test = None     # The root mean squared error of the validation / testing area
+        self.mae_test = None      # The mean absolute error of the validation / testing area
         self.idx = idx
         self._pipe = pipe         # Private attribute for pipe
         self.pipe_update = False  # Flag to indicate pipeline needs to be updated
@@ -105,10 +105,11 @@ class GPR:
             f"kernel: {self.kernel}",
             f"scaler: {self.scaler}",
             f"features: {self.feats}",
-            f"R2: {self.r2}" if self.r2 is not None else "",
-            f"log marginal likelihood: {self.marg_lh}" if self.marg_lh is not None else "",
-            f"RMSE: {self.rmse}" if self.rmse is not None else "",
-            f"MAE: {self.mae}" if self.mae is not None else ""
+            f"log marginal likelihood (LML): {self.marg_lh}"
+            if self.marg_lh is not None else "",
+            f"R2_test: {self.r2_test}" if self.r2_test is not None else "",
+            f"RMSE_test: {self.rmse_test}" if self.rmse_test is not None else "",
+            f"MAE_test: {self.mae_test}" if self.mae_test is not None else ""
         ]
         return "\n".join(filter(lambda x: len(x) > 0, attributes))
 

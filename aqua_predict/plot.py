@@ -167,7 +167,8 @@ class PlotCorr:
 
 class PlotGPR:
     def __init__(self, df=None, title="GPR", xlabel="Time",
-                 ylabel="Water Demand", std=1.96, fig_size=(14, 6)):
+                 ylabel="Water Demand", std=1.96, fig_size=(14, 6),
+                 dpi=150):
         """
         Initialize the PlotGPR class.
         :param df: PD.DATAFRAME containing the data
@@ -176,6 +177,7 @@ class PlotGPR:
         :param ylabel: STR with the Y-axis label
         :param std: FLOAT with the standard deviation value
         :param fig_size: TUPLE with the figure size for the plot
+        :param dpi: INT with the expected dots per inch of the figure
         """
         self.df = df
         self.title = title
@@ -183,6 +185,9 @@ class PlotGPR:
         self.ylabel = ylabel
         self.std = std
         self.figure_size = fig_size
+        self.dpi = dpi
+        self.fig = None   # Figure object
+        self.axes = None  # Axes object
 
     def plot(self, y_train, y_test, y_mean, y_cov):
         """
@@ -198,8 +203,7 @@ class PlotGPR:
         the predicted values
         :return: None
         """
-        plt.figure(figsize=self.figure_size)  # Create a new figure
-        axes = plt.gca()  # Get current axes
+        self.fig, self.axes = plt.subplots(figsize=self.figure_size)
 
         # Extraction of important data from the x-axis for plotting
         x_labels = np.array(self.df["Monat/Jahr"])  # All X-axis time labels
@@ -209,34 +213,47 @@ class PlotGPR:
         x_labs_plot = x_labels[x_ticks]  # X labels for plotting
 
         # Set the title and labels
-        axes.set_title(self.title)
-        axes.set_xlabel(self.xlabel)
-        axes.set_ylabel(self.ylabel)
+        self.axes.set_title(self.title)
+        self.axes.set_xlabel(self.xlabel)
+        self.axes.set_ylabel(self.ylabel)
 
         # Plot knowing data points
-        axes.scatter(x_indexes_train, y_train, c="k", s=15,
-                     zorder=10, marker="x")
-        axes.scatter(x_indexes_test, y_test, c="r", s=15,
-                     zorder=10, edgecolors=(0, 0, 0))
+        self.axes.scatter(x_indexes_train, y_train, c="k", s=15,
+                          zorder=10, marker="x")
+        self.axes.scatter(x_indexes_test, y_test, c="r", s=15,
+                          zorder=10, edgecolors=(0, 0, 0))
 
         # Plot predictions and uncertainty
-        axes.plot(x_indexes, y_mean, "C0", lw=1.5, zorder=9)
-        axes.fill_between(x_indexes,
-                          y_mean - self.std * np.sqrt(np.diag(y_cov)),
-                          y_mean + self.std * np.sqrt(np.diag(y_cov)),
-                          color="C0", alpha=0.2)
+        self.axes.plot(x_indexes, y_mean, "C0", lw=1.5, zorder=9)
+        self.axes.fill_between(x_indexes,
+                               y_mean - self.std * np.sqrt(np.diag(y_cov)),
+                               y_mean + self.std * np.sqrt(np.diag(y_cov)),
+                               color="C0", alpha=0.2)
 
         # Customize the plot
-        axes.grid(True)
-        axes.set_xticks(x_ticks)
-        axes.set_xticklabels(x_labs_plot)
-        axes.tick_params(axis="x", rotation=70)
-        axes.legend(["Training Data", "Test Data",
-                     "GP Mean",
-                     f"GP conf interval ({self.std} std)"])
+        self.axes.grid(True)
+        self.axes.set_xticks(x_ticks)
+        self.axes.set_xticklabels(x_labs_plot)
+        self.axes.tick_params(axis="x", rotation=70)
+        self.axes.legend(["Training Data", "Test Data",
+                          "GP Mean",
+                          f"GP conf interval ({self.std} std)"])
 
         # Show the plot
         plt.show()
+
+    def save(self, file_name):
+        """
+        Save the current plot to a file.
+        :param file_name: STR with the name of the file to save the plot
+        :return: None
+        """
+        if self.fig:
+            self.fig.savefig(file_name, dpi=self.dpi,
+                             bbox_inches="tight", pad_inches=0.25)
+        else:
+            raise RuntimeError("No plot has been created yet."
+                               " Please call the plot method before saving.")
 
 
 class PlotTS:

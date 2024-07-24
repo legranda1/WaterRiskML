@@ -10,6 +10,8 @@ import pickle
 # Import the Pool class from the multiprocessing module to handle
 # parallel processing
 from multiprocessing import Pool
+
+import matplotlib.pyplot as plt
 import numpy as np
 from config import *
 from data import DataManager
@@ -20,6 +22,7 @@ from sklearn import preprocessing
 # Importing combinations from itertools for generating
 # combinations of elements
 from itertools import combinations
+from sklearn.gaussian_process import GaussianProcessRegressor
 from sklearn.gaussian_process.kernels import (ConstantKernel, Matern,
                                               WhiteKernel)
 from sklearn.metrics import root_mean_squared_error, mean_absolute_error
@@ -84,18 +87,18 @@ def fit_and_test(iter_params):
     predictions = pipeline.predict(features[test_idx])
 
     # Calculate performance metrics and update the parameter object
-    params.r2 = pipeline.score(features[test_idx], targets[test_idx])
-    params.rmse = root_mean_squared_error(targets[test_idx], predictions)
-    params.mae = mean_absolute_error(targets[test_idx], predictions)
     params.marg_lh = gp.log_marginal_likelihood_value_
+    params.r2_test = pipeline.score(features[test_idx], targets[test_idx])
+    params.rmse_test = root_mean_squared_error(targets[test_idx], predictions)
+    params.mae_test = mean_absolute_error(targets[test_idx], predictions)
 
     # Record the end time of the approach
-    end_time = time.time()
+    conclude_time = time.time()
 
     # Print the learned kernel and iteration details
     print(f"Kernel learned: {gp.kernel_}")
     print(params)
-    print(f"Iteration time: {end_time - start_time:.2f} seconds")
+    print(f"Iteration time: {conclude_time - start_time:.2f} seconds")
     print("\n")
 
     # Return the updated parameter object
@@ -107,9 +110,9 @@ if __name__ == "__main__":
     init_time = time.time()
 
     # Choose the file name of the Excel data you want to work with
-    FNAME = "Auswertung WV14 Unteres Elsenztal.xlsx"
-    # FNAME = "Auswertung WV25 SW Füssen.xlsx"
-    # FNAME = "Auswertung WV69 SW Landshut.xlsx"
+    FNAME = "Auswertung WV14 Unteres Elsenztal"
+    # FNAME = "Auswertung WV25 SW Füssen"
+    # FNAME = "Auswertung WV69 SW Landshut"
 
     # Flags
     SHOW_PLOTS = False
@@ -130,8 +133,8 @@ if __name__ == "__main__":
     # CHUNK_SIZE = 100
 
     # Load and filter the data
-    data = DataManager(xlsx_file_name=FNAME).filter_data()
-    # data = DataManager(xlsx_file_name=FNAME).iterative_cleaning(COL_ALL)
+    data = DataManager(xlsx_file_name=f"{FNAME}.xlsx").filter_data()
+    # data = DataManager(xlsx_file_name=f"{FNAME}.xlsx").iterative_cleaning(COL_ALL)
 
     # Extraction of all input and output data
     x_all = np.array(data[COL_FEAT])
@@ -170,8 +173,8 @@ if __name__ == "__main__":
     # For nu=inf, the kernel becomes equivalent to the RBF kernel
     nu_s = [0.5, 1.5, 2.5, np.inf]
 
-    # Initialize an empty list for storing results of features
-    results_feats = []
+    # Initialize an empty list for storing tuples of parameters
+    all_par_sets = []
     # Initialize the iteration counter
     counter = 0
     # Iterate over each combination of feature columns
@@ -194,15 +197,15 @@ if __name__ == "__main__":
                                   * Matern(nu=nu, length_scale=1.0,
                                            length_scale_bounds=(1e-3, 1e3)))
 
-                    results_feats.append((GPR(kernel=kernel, scaler=scaler,
-                                              feats=comb_feat, idx=counter),
-                                          x_all[:, comb_feat],
-                                          y_all, x_indexes_train,
-                                          x_indexes_test))
+                    all_par_sets.append((GPR(kernel=kernel, scaler=scaler,
+                                             feats=comb_feat, idx=counter),
+                                         x_all[:, comb_feat],
+                                         y_all, x_indexes_train,
+                                         x_indexes_test))
 
                     counter += 1
 
-    results_iter = results_feats
+    results_iter = all_par_sets
 
     # Use multiprocessing Pool to distribute tasks across NUMBER_CPUS
     with Pool(NUMBER_CPUS) as pool:
@@ -215,26 +218,91 @@ if __name__ == "__main__":
         if result.successful():
             # Retrieve results from asynchronous processing
             # (i.e., objects of GPRPars())
-            final_results = result.get()
+            all_par_sets_updated = result.get()
             # Extract R2 scores from each parameter set
-            r2_scores = np.array([par_set.r2 for par_set in final_results])
+            r2_test_scores = np.array([par_set.r2_test for par_set in all_par_sets_updated])
         else:
             # Handle case where GPR approach failed
             print("\n\nGPR approach went wrong!")
 
-    # Record the end time of the approach
-    end_time = time.time()
-
     # Get the best
-    best_index = r2_scores.argmax()  # Find the index of the best R2 score
+    best_index = r2_test_scores.argmax()  # Find the index of the best R2 score
     # Get the parameter set corresponding to the best score
-    par_set = final_results[best_index]
+    best_par_set = all_par_sets_updated[best_index]
     # Print the index of the best iteration
     print(f"\nBest iteration: {best_index}")
     # Print the best R2 score
-    print(f"Best R2 score: {r2_scores[best_index]}")
-    print(par_set)  # Print the best parameter set
+    print(f"Best R2 score: {r2_test_scores[best_index]}")
+    print(best_par_set)  # Print the best parameter set
+
+    # Extract and check results by re-computing without pipe
+    best_scaler = best_par_set.scaler
+    x_all_scaled = best_scaler.fit_transform(x_all[:, best_par_set.feats])
+    x_train_scaled = best_scaler.fit_transform(x_train[:, best_par_set.feats])
+    x_test_scaled = best_scaler.fit_transform(x_test[:, best_par_set.feats])
+    best_gp = GaussianProcessRegressor(kernel=best_par_set.kernel,
+                                       n_restarts_optimizer=50,
+                                       random_state=42,
+                                       normalize_y=True,
+                                       alpha=1e-10)
+    # If necessary, change x_train_scaled to x_all_scaled to fit the GPR to all data.
+    best_gp.fit(x_train_scaled, y_train)
+    marg_lh = best_gp.log_marginal_likelihood_value_
+    y_pred_test = best_gp.predict(x_test_scaled)
+    r2_test = best_gp.score(x_test_scaled, y_test)
+    rmse_test = root_mean_squared_error(y_test, y_pred_test)
+    mae_test = mean_absolute_error(y_test, y_pred_test)
+
+    # Check if the re-computed results differ significantly from the one with pipe
+    eps = 1.0e-10  # Tolerance for detecting significant differences
+    check_error = (np.abs(best_par_set.r2_test - r2_test) > eps or
+                   np.abs(best_par_set.rmse_test - rmse_test) > eps or
+                   np.abs(best_par_set.mae_test - mae_test) > eps)
+
+    if check_error:
+        print(f"New fit, result change, difference > {eps}!")
+        print(f"log marginal likelihood (LML): {marg_lh}",
+              f"R2_test: {r2_test}", f"RMSE_test: {rmse_test}",
+              f"MAE_test: {mae_test}", sep="\n")
+
+    # Record the end time of the approach
+    end_time = time.time()
     total_time = end_time - init_time
     # Print the running time in seconds and as a timedelta
     print(f"Running time: \n{total_time:5.3f} seconds /"
           f" {datetime.timedelta(seconds=total_time)}")
+
+    if SAVE_PLOTS or SHOW_PLOTS:
+        y_mean, y_cov = best_gp.predict(x_all_scaled, return_cov=True)
+        # Create plotter instance and plot
+        plotter = PlotGPR(data, f"GPR with {best_gp.kernel_}",
+                          "Time [Month/Year]",
+                          "Monthly per capita water consumption [L/(C*d)]",
+                          1.96,
+                          fig_size=(12, 6))
+        if SAVE_PLOTS:
+            if not os.path.exists(DIR_PLOTS):
+                print(f"Creation of {DIR_PLOTS}")
+                os.makedirs(DIR_PLOTS)
+            PATH = f"{DIR_PLOTS}/best_gpr_found_in_{FNAME}.png"
+            plt.savefig(PATH, dpi=200,
+                        bbox_inches="tight", pad_inches=0.25)
+        if SHOW_PLOTS:
+            plotter.plot(y_train, y_test, y_mean, y_cov)
+
+    if SAVE_WORKSPACE and result.successful():
+        workspace = {"best_par_set": best_par_set,
+                     "best_gp": best_gp, "all features": x_all,
+                     "target": y_all, "best_scaler": best_scaler,
+                     "all_par_sets_updated": all_par_sets_updated,
+                     "r2_test_scores": r2_test_scores,
+                     "x_indexes_train": x_indexes_train,
+                     "x_indexes_test": x_indexes_test,
+                     "time": total_time}
+        if not os.path.exists(DIR_OUT_DATA):
+            print(f"Creation of {DIR_OUT_DATA}")
+            os.makedirs(DIR_OUT_DATA)
+        PATH = f"{DIR_OUT_DATA}/gpr_workspace_of_{FNAME}.p"
+        print(f"Writing output to {PATH}")
+        with open(PATH, "wb") as out_file:  # Open the file for writing in binary mode
+            pickle.dump(workspace, out_file)  # Save the workspace to the .p file
