@@ -97,6 +97,30 @@ def plot_pairplot(data, feat1=None, feat2=None):
     return pp.plot_pp()
 
 
+def is_highly_correlated(feature, selected_features, corr_matrix, threshold=0.8):
+    """
+    Checks if a given feature is highly correlated with any of the
+    already selected features
+    :param feature: STR with the name of the feature to be checked for
+    high correlation
+    :param selected_features: LIST of strings containing the already
+    selected features
+    :param corr_matrix: PD.DATAFRAME containing correlation
+    coefficients between features
+    :param threshold: FLOAT above which two features are considered
+    highly correlated
+    :return: BOOL which returns True if the feature is highly
+    correlated with any of the selected features, otherwise False
+    """
+    # Iterate over each selected feature
+    for selected_feature in selected_features:
+        # Check if the absolute correlation between the current feature
+        # and any selected feature exceeds the threshold
+        if abs(corr_matrix.loc[feature, selected_feature]) > threshold:
+            return True
+    return False
+
+
 class DataManager(PlotBp, PlotCorr):
     def __init__(self,
                  xlsx_file_name="Auswertung WV14 Unteres Elsenztal.xlsx",
@@ -306,18 +330,17 @@ if __name__ == "__main__":
         initial_data = data_handler.filter_data()
         corr_matrix = initial_data[[COL_TAR] + COL_FEAT].corr()
         print(corr_matrix)
-        mask = np.triu(np.ones_like(corr_matrix, dtype=bool), k=1)
-        lower_triangle_corr = corr_matrix.where(mask)
-        corr_long = lower_triangle_corr.stack().reset_index()
-        corr_long.columns = ["Feature 1", "Feature 2", "Correlation"]
-        corr_long["AbsCorrelation"] = corr_long["Correlation"].abs()
-        print(f"{corr_long}\n")
-        sorted_corr = corr_long.sort_values(by="AbsCorrelation")
-        print(f"{sorted_corr}\n")
-        threshold = 0.1
-        not_correlated = sorted_corr[sorted_corr["AbsCorrelation"] < threshold]
-        not_correlated_pairs = not_correlated[["Feature 1", "Feature 2"]]
-        print(not_correlated_pairs)
+        target_corr = corr_matrix[COL_TAR].drop(COL_TAR).abs().sort_values(ascending=False)
+        print(target_corr)
+        selected_features = []
+        for feature in target_corr.index:
+            # If the feature is not highly correlated with any of the selected features
+            if not is_highly_correlated(feature, selected_features,
+                                        corr_matrix):
+                selected_features.append(feature)
+        print(f"Selected features: {selected_features}")
+        for feature in selected_features:
+            print(f"{feature}: {corr_matrix.loc[COL_TAR, feature]:.2f}")
         cleaned_data = data_handler.iterative_cleaning(FEAT[0])
         if SHOW_INIT_CORR:
             plot_heatmap(initial_data, COL_TAR, COL_FEAT)
