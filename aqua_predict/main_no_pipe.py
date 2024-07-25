@@ -22,25 +22,26 @@ if __name__ == "__main__":
     x_all = np.array(data[COL_FEAT])
     y_all = np.array(data[COL_TAR])
 
-    # Scaling all input data
+    # Splitting training and test data
+    x_train, x_test = split_data(x_all, 0.7)
+    y_train, y_test = split_data(y_all, 0.7)
+
+    # Scaling all input data, training, and testing data
     scaler = preprocessing.QuantileTransformer(
                 n_quantiles=92, random_state=0
             )
-    x_all_scaled = scaler.fit_transform(x_all)
-
-    # Splitting training and test data
-    x_train_scaled, x_test_scaled = split_data(x_all_scaled, 0.7)
-    y_train, y_test = split_data(y_all, 0.7)
+    x_train_scaled = scaler.fit_transform(x_train)
+    x_test_scaled = scaler.transform(x_test)
 
     # Generating the GPR without pipe
     nu_s = [0.5, 1.5, 2.5, np.inf]
     # For nu=inf, the kernel becomes equivalent to the RBF kernel
-    nu = nu_s[-1]
+    nu = nu_s[0]
 
     kernel = (ConstantKernel(constant_value=1.0,
                              constant_value_bounds=(0.1, 10.0))
               * Matern(nu=nu, length_scale=1.0,
-                       length_scale_bounds=(1e-2, 1e3))
+                       length_scale_bounds=(1e-3, 1e3))
               + WhiteKernel(noise_level=1e-5,
                             noise_level_bounds=(1e-10, 1e1)))
 
@@ -61,6 +62,7 @@ if __name__ == "__main__":
     y_pred_test = gp.predict(x_test_scaled)
     print(f"RMSE_test: {root_mean_squared_error(y_test, y_pred_test)}")
     print(f"MAE_test: {mean_absolute_error(y_test, y_pred_test)}")
+    x_all_scaled = scaler.transform(x_all)
     y_mean, y_cov = gp.predict(x_all_scaled, return_cov=True)
 
     # Create plotter instance and plot

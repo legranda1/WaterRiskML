@@ -244,7 +244,8 @@ class PlotGPR:
         self.axes.tick_params(axis="x", rotation=70)
         legend = self.axes.legend(["Training Data", "Test Data",
                                    "GP Mean",
-                                   f"GP conf interval ({self.std} std)"])
+                                   f"GP conf interval ({self.std} std)"],
+                                  loc="upper left")
 
         # Extract the font size from the legend
         fontsize = legend.get_texts()[0].get_fontsize()

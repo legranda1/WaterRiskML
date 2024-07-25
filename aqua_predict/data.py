@@ -144,6 +144,27 @@ def is_highly_correlated(feature, selected_features,
     return False
 
 
+def selected_features(data, feat1=None, feat2=None, threshold=0.8):
+    """
+
+    :param data: PD.DATAFRAME with the dataset to plot
+    :param feat1: STR of the target variable (output)
+    :param feat2: LIST of strings of feature names (inputs)
+    :param threshold: FLOAT above which two features are considered
+    highly correlated
+    :return: LIST of strings with the selected_features
+    """
+    corr_matrix = data[[feat1] + feat2].corr()
+    target_corr = corr_matrix[feat1].drop(feat1).abs().sort_values(ascending=False)
+    selected_features = []
+    for feature in target_corr.index:
+        # If the feature is not highly correlated with any of the
+        # selected features
+        if not is_highly_correlated(feature, selected_features, corr_matrix, threshold=threshold):
+            selected_features.append(feature)
+    return selected_features
+
+
 class DataManager(PlotBp, PlotCorr):
     def __init__(self,
                  xlsx_file_name="Auswertung WV14 Unteres Elsenztal.xlsx",
@@ -349,52 +370,30 @@ if __name__ == "__main__":
                                         show_results=True)
             plot_boxplot(FEAT[0], FEAT[1], initial_data, wv_label)
             if SHOW_TIMESERIES:
-                plot_timeseries(initial_data, COL_FEAT, wv_label)
+                plot_timeseries(initial_data, FEAT[0], wv_label)
             if SHOW_CORR:
                 plot_heatmap(initial_data, COL_TAR, COL_FEAT, wv_label)
                 plot_pairplot(initial_data, COL_TAR, COL_FEAT, wv_label)
                 if SHOW_SEL_FEATS:
-                    corr_matrix = initial_data[[COL_TAR] + COL_FEAT].corr()
-                    print(corr_matrix)
-                    target_corr = (corr_matrix[COL_TAR]
-                                   .drop(COL_TAR).abs().sort_values(ascending=False))
-                    print(target_corr)
-                    selected_features = []
-                    for feature in target_corr.index:
-                        # If the feature is not highly correlated with any of the
-                        # selected features
-                        if not is_highly_correlated(feature, selected_features,
-                                                    corr_matrix, threshold=0.7):
-                            selected_features.append(feature)
-                    print(f"Selected features: {selected_features}")
-                    for feature in selected_features:
-                        print(f"{feature}: {corr_matrix.loc[COL_TAR, feature]:.2f}")
+                    final_features = selected_features(
+                        initial_data, COL_TAR, COL_FEAT, threshold=0.7
+                    )
+                    print(f"Selected features: {final_features}")
         if SHOW_WITHOUT_OUTLIERS:
             print(cleaned_data)
             data_handler.print_outliers(FEAT[0], cleaned_data,
                                         show_results=True)
             plot_boxplot(FEAT[0], FEAT[1], cleaned_data, wv_label)
             if SHOW_TIMESERIES:
-                plot_timeseries(cleaned_data, COL_FEAT, wv_label)
+                plot_timeseries(cleaned_data, FEAT[0], wv_label)
             if SHOW_CORR:
                 plot_heatmap(cleaned_data, COL_TAR, COL_FEAT, wv_label)
                 plot_pairplot(cleaned_data, COL_TAR, COL_FEAT, wv_label)
                 if SHOW_SEL_FEATS:
-                    corr_matrix = cleaned_data[[COL_TAR] + COL_FEAT].corr()
-                    print(corr_matrix)
-                    target_corr = (corr_matrix[COL_TAR]
-                                   .drop(COL_TAR).abs().sort_values(ascending=False))
-                    print(target_corr)
-                    selected_features = []
-                    for feature in target_corr.index:
-                        # If the feature is not highly correlated with any of the
-                        # selected features
-                        if not is_highly_correlated(feature, selected_features,
-                                                    corr_matrix, threshold=0.7):
-                            selected_features.append(feature)
-                    print(f"Selected features: {selected_features}")
-                    for feature in selected_features:
-                        print(f"{feature}: {corr_matrix.loc[COL_TAR, feature]:.2f}")
+                    final_features = selected_features(
+                        cleaned_data, COL_TAR, COL_FEAT, threshold=0.7
+                    )
+                    print(f"Selected features: {final_features}")
     except Exception as e:
         print(f"An error occurred: {e}")
 

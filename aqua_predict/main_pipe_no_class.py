@@ -48,51 +48,43 @@ if __name__ == "__main__":
     # Generating the GPR without any class (from scratch)
     nu_s = [0.5, 1.5, 2.5, np.inf]
     # For nu=inf, the kernel becomes equivalent to the RBF kernel
-    nu = nu_s[-1]
+    nu = nu_s[0]
     noise_s = ["Yes", "No"]
 
-    for noise in noise_s:
-        for nu in nu_s:
-            if noise == "Yes":
-                kernel = (ConstantKernel(constant_value=1.0,
-                                         constant_value_bounds=(0.1, 10.0))
-                          * Matern(nu=nu, length_scale=1.0,
-                                   length_scale_bounds=(1e-3, 1e3))
-                          + WhiteKernel(noise_level=1e-5,
-                                        noise_level_bounds=(1e-10, 1e1)))
-            else:
-                kernel = (ConstantKernel(constant_value=1.0,
-                                         constant_value_bounds=(0.1, 10.0))
-                          * Matern(nu=nu, length_scale=1.0,
-                                   length_scale_bounds=(1e-3, 1e3)))
+    kernel = (ConstantKernel(constant_value=1.0,
+                             constant_value_bounds=(0.1, 10.0))
+              * Matern(nu=nu, length_scale=1.0,
+                       length_scale_bounds=(1e-3, 1e3))
+              + WhiteKernel(noise_level=1e-5,
+                            noise_level_bounds=(1e-10, 1e1)))
 
-            gp = GaussianProcessRegressor(kernel=kernel,
-                                          n_restarts_optimizer=50,
-                                          random_state=42,
-                                          normalize_y=True,
-                                          alpha=1e-10)
+    gp = GaussianProcessRegressor(kernel=kernel,
+                                  n_restarts_optimizer=50,
+                                  random_state=42,
+                                  normalize_y=True,
+                                  alpha=1e-10)
 
-            scaler = preprocessing.QuantileTransformer(
-                n_quantiles=92, random_state=0
-            )
-            pipe = Pipeline([("scaler", scaler), ("gp", gp)])
-            pipe.fit(x_train, y_train)
-            print(f"initial kernel: {pipe[1].kernel}")
-            print(f"kernel learned: {pipe[1].kernel_}")
-            print(f"scaler: {scaler}")
-            print(f"log marginal likelihood (LML):"
-                  f" {pipe[1].log_marginal_likelihood_value_}")
-            r2_test = pipe.score(x_test, y_test)
-            print(f"R2_test: {r2_test}")
-            y_pred_test = pipe.predict(x_test)
-            print(f"RMSE_test: {root_mean_squared_error(y_test, y_pred_test)}")
-            print(f"MAE_test: {mean_absolute_error(y_test, y_pred_test)}\n")
-            y_mean, y_cov = pipe.predict(x_all, return_cov=True)
+    scaler = preprocessing.QuantileTransformer(
+        n_quantiles=92, random_state=0
+    )
+    pipe = Pipeline([("scaler", scaler), ("gp", gp)])
+    pipe.fit(x_train, y_train)
+    print(f"initial kernel: {pipe[1].kernel}")
+    print(f"kernel learned: {pipe[1].kernel_}")
+    print(f"scaler: {scaler}")
+    print(f"log marginal likelihood (LML):"
+          f" {pipe[1].log_marginal_likelihood_value_}")
+    r2_test = pipe.score(x_test, y_test)
+    print(f"R2_test: {r2_test}")
+    y_pred_test = pipe.predict(x_test)
+    print(f"RMSE_test: {root_mean_squared_error(y_test, y_pred_test)}")
+    print(f"MAE_test: {mean_absolute_error(y_test, y_pred_test)}\n")
+    y_mean, y_cov = pipe.predict(x_all, return_cov=True)
 
-            # Create plotter instance and plot
-            plotter = PlotGPR(data, f"GPR with {pipe[1].kernel_}",
-                              "Time [Month/Year]",
-                              "Monthly per capita water consumption [L/(C*d)]",
-                              1.96,
-                              fig_size=(12, 6), dpi=200)
-            plotter.plot(y_train, y_test, y_mean, y_cov, r2=r2_test)
+    # Create plotter instance and plot
+    plotter = PlotGPR(data, f"GPR with {pipe[1].kernel_}",
+                      "Time [Month/Year]",
+                      "Monthly per capita water consumption [L/(C*d)]",
+                      1.96,
+                      fig_size=(12, 6), dpi=200)
+    plotter.plot(y_train, y_test, y_mean, y_cov, r2=r2_test)

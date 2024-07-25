@@ -12,9 +12,7 @@ import pickle
 from multiprocessing import Pool
 
 import matplotlib.pyplot as plt
-import numpy as np
-from config import *
-from data import DataManager
+from data import *
 from fun import *
 from plot import PlotGPR
 from gpr import GPR
@@ -115,9 +113,9 @@ if __name__ == "__main__":
     # FNAME = "Auswertung WV69 SW Landshut"
 
     # Flags
-    SHOW_PLOTS = False
-    SAVE_PLOTS = False
-    SAVE_WORKSPACE = False
+    SHOW_PLOTS = True
+    SAVE_PLOTS = True
+    SAVE_WORKSPACE = True
 
     # Directories to create
     DIR_PLOTS = "../plots"
@@ -136,8 +134,10 @@ if __name__ == "__main__":
     data = DataManager(xlsx_file_name=f"{FNAME}.xlsx").filter_data()
     # data = DataManager(xlsx_file_name=f"{FNAME}.xlsx").iterative_cleaning(COL_ALL)
 
+    SEL_FEATS = selected_features(data, COL_TAR, COL_FEAT, threshold=0.7)
+
     # Extraction of all input and output data
-    x_all = np.array(data[COL_FEAT])
+    x_all = np.array(data[SEL_FEATS])
     y_all = np.array(data[COL_TAR])
 
     # Extraction of important data from the x-axis
@@ -148,14 +148,16 @@ if __name__ == "__main__":
     x_train, x_test = split_data(x_all, 0.7)
     y_train, y_test = split_data(y_all, 0.7)
 
-    number_cols = len(COL_FEAT)  # Number of feature columns
+    number_cols = len(SEL_FEATS)  # Number of feature columns
     indexes_cols = np.arange(number_cols)  # Array of column indices
     # Generate combinations of input columns with varying lengths.
     comb_feats = col_combos(indexes_cols)
 
     # List of the most popular scalers for preprocessing
     pop_scalers = [preprocessing.StandardScaler(),
-                   preprocessing.QuantileTransformer(random_state=0),
+                   preprocessing.QuantileTransformer(
+                       n_quantiles=len(x_train), random_state=0
+                   ),
                    preprocessing.MinMaxScaler(feature_range=(0, 1)),
                    preprocessing.RobustScaler(),
                    preprocessing.PowerTransformer(method='yeo-johnson',
@@ -237,9 +239,8 @@ if __name__ == "__main__":
 
     # Extract and check results by re-computing without pipe
     best_scaler = best_par_set.scaler
-    x_all_scaled = best_scaler.fit_transform(x_all[:, best_par_set.feats])
     x_train_scaled = best_scaler.fit_transform(x_train[:, best_par_set.feats])
-    x_test_scaled = best_scaler.fit_transform(x_test[:, best_par_set.feats])
+    x_test_scaled = best_scaler.transform(x_test[:, best_par_set.feats])
     best_gp = GaussianProcessRegressor(kernel=best_par_set.kernel,
                                        n_restarts_optimizer=50,
                                        random_state=42,
@@ -260,7 +261,7 @@ if __name__ == "__main__":
                    np.abs(best_par_set.mae_test - mae_test) > eps)
 
     if check_error:
-        print(f"New fit, result change, difference > {eps}!")
+        print(f"\nNew fit, result change, difference > {eps}!")
         print(f"log marginal likelihood (LML): {marg_lh}",
               f"R2_test: {r2_test}", f"RMSE_test: {rmse_test}",
               f"MAE_test: {mae_test}", sep="\n")
@@ -269,10 +270,11 @@ if __name__ == "__main__":
     end_time = time.time()
     total_time = end_time - init_time
     # Print the running time in seconds and as a timedelta
-    print(f"Running time: \n{total_time:5.3f} seconds /"
+    print(f"\nRunning time: \n{total_time:5.3f} seconds /"
           f" {datetime.timedelta(seconds=total_time)}")
 
     if SAVE_PLOTS or SHOW_PLOTS:
+        x_all_scaled = best_scaler.transform(x_all[:, best_par_set.feats])
         y_mean, y_cov = best_gp.predict(x_all_scaled, return_cov=True)
         # Create plotter instance and plot
         plotter = PlotGPR(data, f"GPR with {best_gp.kernel_}",
@@ -301,7 +303,7 @@ if __name__ == "__main__":
         if not os.path.exists(DIR_OUT_DATA):
             print(f"Creation of {DIR_OUT_DATA}")
             os.makedirs(DIR_OUT_DATA)
-        PATH = f"{DIR_OUT_DATA}/gpr_workspace_of_{FNAME}.p"
+        PATH = f"{DIR_OUT_DATA}/gpr_workspace_of_{FNAME}.pkl"  # .pkl for Pickle files
         print(f"Writing output to {PATH}")
         with open(PATH, "wb") as out_file:  # Open the file for writing in binary mode
-            pickle.dump(workspace, out_file)  # Save the workspace to the .p file
+            pickle.dump(workspace, out_file)  # Save the workspace to the .pkl file

@@ -48,12 +48,12 @@ if __name__ == "__main__":
     # Generating the GPR without any class (from scratch)
     nu_s = [0.5, 1.5, 2.5, np.inf]
     # For nu=inf, the kernel becomes equivalent to the RBF kernel
-    nu = nu_s[-1]
+    nu = nu_s[0]
 
     kernel = (ConstantKernel(constant_value=1.0,
                              constant_value_bounds=(0.1, 10.0))
               * Matern(nu=nu, length_scale=1.0,
-                       length_scale_bounds=(1e-2, 1e3))
+                       length_scale_bounds=(1e-3, 1e3))
               + WhiteKernel(noise_level=1e-5,
                             noise_level_bounds=(1e-10, 1e1)))
 
