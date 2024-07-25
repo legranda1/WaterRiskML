@@ -45,59 +45,82 @@ def clean_data(feature, data):
         # Convert to list if a single feature is provided
         feature = [feature]
 
-    # Remove rows where any of the feature columns contain outlier values
+    # Remove rows where any of the feature columns contain outlier
+    # values
     for feat in feature:
         if feat not in ("Heiße Tage", "Sommertage", "Eistage"):
             # Identify outlier values for the current feature
             outliers_values = identify_outliers(feat, data)
-            # Remove rows where the current feature column contains outlier values
+            # Remove rows where the current feature column contains
+            # outlier values
             data = data[~data[feat].isin(outliers_values)]
 
     # Return the cleaned data
     return data
 
 
-def plot_boxplot(feats, units, data):
+def plot_timeseries(data, feats, file_name):
     """
-    Plots a boxplot according to the respective features.
-    :param feats: STR or LIST with the feature(s) to investigate for plotting.
-    :param units: LIST with the units corresponding to each feature.
+    Plots a time series plot for the specified features.
+    :param feats: LIST of strings of feature names (inputs)
     :param data: PD.DATAFRAME with the dataset to plot
+    :param file_name: STR with the code name of the file
+    :return: A timeseries plot
+    """
+    ts = PlotTS(
+        data,
+        title=f"Time series of {file_name}",
+        xlabel="Time", ylabel="Ranges", fig_size=(14, 6)
+    )
+    return ts.plot(feats)
+
+
+def plot_boxplot(feats, units, data, file_name):
+    """
+    Plots a boxplot according to the respective features
+    :param feats: STR or LIST with the feature(s) to investigate for
+    plotting
+    :param units: LIST with the units corresponding to each feature
+    :param data: PD.DATAFRAME with the dataset to plot
+    :param file_name: STR with the code name of the file
     :return: A boxplot object
     """
-    boxplot = PlotBp(data, title=f"Boxplot",
+    boxplot = PlotBp(data, title=f"Boxplot of {file_name}",
                      ylabel="Ranges", fig_size=(12, 6))
     return boxplot.plot(feats, units)
 
 
-def plot_heatmap(data, feat1=None, feat2=None):
+def plot_heatmap(data, feat1=None, feat2=None, file_name=None):
     """
     Plots a correlation coefficient heatmap for the
     specified features.
     :param data: PD.DATAFRAME with the dataset to plot
     :param feat1: STR of the target variable (output)
     :param feat2: LIST of strings of feature names (inputs)
+    :param file_name: STR with the code name of the file
     :return: A heatmap
     """
     corr_matrix = data[[feat1] + feat2].corr()
-    hm = PlotCorr(corr_matrix, title="Correlation heatmap")
+    hm = PlotCorr(corr_matrix, title=f"Correlation heatmap of {file_name}")
     return hm.plot_hm()
 
 
-def plot_pairplot(data, feat1=None, feat2=None):
+def plot_pairplot(data, feat1=None, feat2=None, file_name=None):
     """
     Plots a correlation pairplot for the specified features.
     :param data: PD.DATAFRAME with the dataset to plot
     :param feat1: STR of the target variable (output)
     :param feat2: LIST of strings of feature names (inputs)
+    :param file_name: STR with the code name of the file
     :return: A pairplot
     """
     corr_matrix = data[[feat1] + feat2]
-    pp = PlotCorr(corr_matrix, title="Correlation pairplot")
+    pp = PlotCorr(corr_matrix, title=f"Correlation pairplot of {file_name}")
     return pp.plot_pp()
 
 
-def is_highly_correlated(feature, selected_features, corr_matrix, threshold=0.8):
+def is_highly_correlated(feature, selected_features,
+                         corr_matrix, threshold=0.8):
     """
     Checks if a given feature is highly correlated with any of the
     already selected features
@@ -233,8 +256,10 @@ class DataManager(PlotBp, PlotCorr):
 
     def iterative_cleaning(self, feature):
         """
-         Iteratively cleans the data to remove outliers from the specified feature.
-        :param feature: STR containing the name of the feature column to clean
+         Iteratively cleans the data to remove outliers from the
+        specified feature.
+        :param feature: STR containing the name of the feature column
+        to clean
         :return: PD.DATAFRAME containing the cleaned data
         """
         # Filter the initial data
@@ -242,7 +267,8 @@ class DataManager(PlotBp, PlotCorr):
 
         while True:
             initial_len = len(data)
-            # Clean the data to remove outliers from the specified feature
+            # Clean the data to remove outliers from the
+            # specified feature
             data = clean_data(feature, data)
             # Check if the length of the data has not changed
             if len(data) == initial_len:
@@ -287,20 +313,6 @@ class DataManager(PlotBp, PlotCorr):
             f"- There are a total number of {count_out} outliers "
             f"in the file {self.xlsx_file_name}\n")
 
-    def plot_timeseries(self, data, feats):
-        """
-        Plots a time series plot for the specified features.
-        :param feats: LIST of strings of feature names (inputs)
-        :param data: PD.DATAFRAME with the dataset to plot
-        :return: A timeseries plot
-        """
-        ts = PlotTS(
-            data,
-            title=f"Time series of '{self.xlsx_file_name}'",
-            xlabel="Time", ylabel="Ranges", fig_size=(14, 6)
-        )
-        return ts.plot(feats)
-
 
 if __name__ == "__main__":
     # Record the initial time for tracking script duration
@@ -317,49 +329,72 @@ if __name__ == "__main__":
     FEAT = [COL_ALL, UNIT_ALL]
 
     # Flags
-    SHOW_INIT_CORR = False
-    SHOW_OUTLIERS = False
-    SHOW_INIT_TIMESERIES = False
-    SHOW_CLEAN_TIMESERIES = False
-    SHOW_CLEAN = False
-    SHOW_CLEAN_CORR = False
+    SHOW_WITH_OUTLIERS = True
+    SHOW_WITHOUT_OUTLIERS = False
+    SHOW_TIMESERIES = True
+    SHOW_CORR = True
+    SHOW_SEL_FEATS = True
 
     try:
         # Instantiate an object of the DataManager class
         data_handler = DataManager(xlsx_file_name=FNAME)
         initial_data = data_handler.filter_data()
-        corr_matrix = initial_data[[COL_TAR] + COL_FEAT].corr()
-        print(corr_matrix)
-        target_corr = corr_matrix[COL_TAR].drop(COL_TAR).abs().sort_values(ascending=False)
-        print(target_corr)
-        selected_features = []
-        for feature in target_corr.index:
-            # If the feature is not highly correlated with any of the selected features
-            if not is_highly_correlated(feature, selected_features,
-                                        corr_matrix):
-                selected_features.append(feature)
-        print(f"Selected features: {selected_features}")
-        for feature in selected_features:
-            print(f"{feature}: {corr_matrix.loc[COL_TAR, feature]:.2f}")
+        wv_number = str(int(initial_data["WVU Nr. "].iloc[0]))
+        wv_label = f"WV{wv_number}"
+        print(wv_label)
         cleaned_data = data_handler.iterative_cleaning(FEAT[0])
-        if SHOW_INIT_CORR:
-            plot_heatmap(initial_data, COL_TAR, COL_FEAT)
-            plot_pairplot(initial_data, COL_TAR, COL_FEAT)
-        if SHOW_INIT_TIMESERIES:
-            data_handler.plot_timeseries(initial_data, COL_FEAT)
-        if SHOW_CLEAN_TIMESERIES:
-            data_handler.plot_timeseries(cleaned_data, COL_FEAT)
-        if SHOW_OUTLIERS:
+        if SHOW_WITH_OUTLIERS:
             print(initial_data)
-            data_handler.print_outliers(FEAT[0], initial_data, show_results=True)
-            plot_boxplot(FEAT[0], FEAT[1], initial_data)
-        if SHOW_CLEAN:
+            data_handler.print_outliers(FEAT[0], initial_data,
+                                        show_results=True)
+            plot_boxplot(FEAT[0], FEAT[1], initial_data, wv_label)
+            if SHOW_TIMESERIES:
+                plot_timeseries(initial_data, COL_FEAT, wv_label)
+            if SHOW_CORR:
+                plot_heatmap(initial_data, COL_TAR, COL_FEAT, wv_label)
+                plot_pairplot(initial_data, COL_TAR, COL_FEAT, wv_label)
+                if SHOW_SEL_FEATS:
+                    corr_matrix = initial_data[[COL_TAR] + COL_FEAT].corr()
+                    print(corr_matrix)
+                    target_corr = (corr_matrix[COL_TAR]
+                                   .drop(COL_TAR).abs().sort_values(ascending=False))
+                    print(target_corr)
+                    selected_features = []
+                    for feature in target_corr.index:
+                        # If the feature is not highly correlated with any of the
+                        # selected features
+                        if not is_highly_correlated(feature, selected_features,
+                                                    corr_matrix, threshold=0.7):
+                            selected_features.append(feature)
+                    print(f"Selected features: {selected_features}")
+                    for feature in selected_features:
+                        print(f"{feature}: {corr_matrix.loc[COL_TAR, feature]:.2f}")
+        if SHOW_WITHOUT_OUTLIERS:
             print(cleaned_data)
-            data_handler.print_outliers(FEAT[0], cleaned_data, show_results=True)
-            plot_boxplot(FEAT[0], FEAT[1], cleaned_data)
-        if SHOW_CLEAN_CORR:
-            plot_heatmap(cleaned_data, COL_TAR, COL_FEAT)
-            plot_pairplot(cleaned_data, COL_TAR, COL_FEAT)
+            data_handler.print_outliers(FEAT[0], cleaned_data,
+                                        show_results=True)
+            plot_boxplot(FEAT[0], FEAT[1], cleaned_data, wv_label)
+            if SHOW_TIMESERIES:
+                plot_timeseries(cleaned_data, COL_FEAT, wv_label)
+            if SHOW_CORR:
+                plot_heatmap(cleaned_data, COL_TAR, COL_FEAT, wv_label)
+                plot_pairplot(cleaned_data, COL_TAR, COL_FEAT, wv_label)
+                if SHOW_SEL_FEATS:
+                    corr_matrix = cleaned_data[[COL_TAR] + COL_FEAT].corr()
+                    print(corr_matrix)
+                    target_corr = (corr_matrix[COL_TAR]
+                                   .drop(COL_TAR).abs().sort_values(ascending=False))
+                    print(target_corr)
+                    selected_features = []
+                    for feature in target_corr.index:
+                        # If the feature is not highly correlated with any of the
+                        # selected features
+                        if not is_highly_correlated(feature, selected_features,
+                                                    corr_matrix, threshold=0.7):
+                            selected_features.append(feature)
+                    print(f"Selected features: {selected_features}")
+                    for feature in selected_features:
+                        print(f"{feature}: {corr_matrix.loc[COL_TAR, feature]:.2f}")
     except Exception as e:
         print(f"An error occurred: {e}")
 
