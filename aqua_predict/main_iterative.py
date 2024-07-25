@@ -12,6 +12,8 @@ import pickle
 from multiprocessing import Pool
 
 import matplotlib.pyplot as plt
+import numpy as np
+
 from data import *
 from fun import *
 from plot import PlotGPR
@@ -113,6 +115,8 @@ if __name__ == "__main__":
     # FNAME = "Auswertung WV69 SW Landshut"
 
     # Flags
+    BEST_R2 = True
+    BEST_LML = False
     SHOW_PLOTS = True
     SAVE_PLOTS = True
     SAVE_WORKSPACE = True
@@ -166,7 +170,7 @@ if __name__ == "__main__":
                    preprocessing.Normalizer(norm='l2'),
                    preprocessing.Normalizer(norm='max')]
     scalers = [pop_scalers[0], pop_scalers[1]]
-    # scalers = sc_all
+    # scalers = pop_scalers
 
     # List to toggle noise addition
     noise_s = ["Yes", "No"]
@@ -221,21 +225,33 @@ if __name__ == "__main__":
             # Retrieve results from asynchronous processing
             # (i.e., objects of GPRPars())
             all_par_sets_updated = result.get()
-            # Extract R2 scores from each parameter set
-            r2_test_scores = np.array([par_set.r2_test for par_set in all_par_sets_updated])
+            if BEST_LML:
+                # Extract LML scores from each parameter set
+                lml_scores = np.array([par_set.marg_lh for par_set in all_par_sets_updated])
+            if BEST_R2:
+                # Extract R2 scores from each parameter set
+                r2_test_scores = np.array([par_set.r2_test for par_set in all_par_sets_updated])
         else:
             # Handle case where GPR approach failed
             print("\n\nGPR approach went wrong!")
 
     # Get the best
-    best_index = r2_test_scores.argmax()  # Find the index of the best R2 score
+    if BEST_R2:
+        best_index = r2_test_scores.argmax()  # Find the index of the best R2 score
+    if BEST_LML:
+        best_index = lml_scores.argmax()  # Find the index of the best LML score
     # Get the parameter set corresponding to the best score
     best_par_set = all_par_sets_updated[best_index]
     # Print the index of the best iteration
     print(f"\nBest iteration: {best_index}")
-    # Print the best R2 score
-    print(f"Best R2 score: {r2_test_scores[best_index]}")
-    print(best_par_set)  # Print the best parameter set
+    if BEST_R2:
+        # Print the best R2 score
+        print(f"Best R2 score: {r2_test_scores[best_index]}")
+        print(best_par_set)  # Print the best parameter set
+    if BEST_LML:
+        # Print the best R2 score
+        print(f"Best LML score: {lml_scores[best_index]}")
+        print(best_par_set)  # Print the best parameter set
 
     # Extract and check results by re-computing without pipe
     best_scaler = best_par_set.scaler
@@ -256,7 +272,8 @@ if __name__ == "__main__":
 
     # Check if the re-computed results differ significantly from the one with pipe
     eps = 1.0e-10  # Tolerance for detecting significant differences
-    check_error = (np.abs(best_par_set.r2_test - r2_test) > eps or
+    check_error = (np.abs(best_par_set.marg_lh - marg_lh) > eps or
+                   np.abs(best_par_set.r2_test - r2_test) > eps or
                    np.abs(best_par_set.rmse_test - rmse_test) > eps or
                    np.abs(best_par_set.mae_test - mae_test) > eps)
 
@@ -293,10 +310,10 @@ if __name__ == "__main__":
 
     if SAVE_WORKSPACE and result.successful():
         workspace = {"best_par_set": best_par_set,
-                     "best_gp": best_gp, "all features": x_all,
+                     "best_gp": best_gp, "all_features": x_all,
                      "target": y_all, "best_scaler": best_scaler,
                      "all_par_sets_updated": all_par_sets_updated,
-                     "r2_test_scores": r2_test_scores,
+                     "scores": r2_test_scores if BEST_R2 else lml_scores,
                      "x_indexes_train": x_indexes_train,
                      "x_indexes_test": x_indexes_test,
                      "time": total_time}
