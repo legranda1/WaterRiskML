@@ -20,6 +20,7 @@ class GPR:
         :param pipe: Optional pipeline object.
         """
         self.kernel = kernel
+        self.kernel_learned = None
         self._scaler = scaler     # Private attribute for scaler
         self.feats = feats
         self.marg_lh = None       # The marginal likelihood of the model
@@ -102,6 +103,7 @@ class GPR:
         :return: STR representation of the GPRPars instance
         """
         attributes = [
+            f"kernel_learned: {self.kernel_learned}" if self.kernel_learned is not None else "",
             f"kernel: {self.kernel}",
             f"scaler: {self.scaler}",
             f"features: {self.feats}",

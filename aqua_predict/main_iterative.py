@@ -56,8 +56,8 @@ def fit_and_test(iter_params):
     Fits a machine learning pipeline and tests its performance on
     given data.
     :param iter_params: A TUPLE containing parameters (object),
-    features (np.array),
-    targets (np.array), training and testing indices (np.array)
+    features (np.array), targets (np.array), training and
+    testing indices (np.array)
     :return: The parameter object with updated performance metrics
     """
     # Unpack the tuple
@@ -87,6 +87,7 @@ def fit_and_test(iter_params):
     predictions = pipeline.predict(features[test_idx])
 
     # Calculate performance metrics and update the parameter object
+    params.kernel_learned = gp.kernel_
     params.marg_lh = gp.log_marginal_likelihood_value_
     params.r2_test = pipeline.score(features[test_idx], targets[test_idx])
     params.rmse_test = root_mean_squared_error(targets[test_idx], predictions)
@@ -95,8 +96,7 @@ def fit_and_test(iter_params):
     # Record the end time of the approach
     conclude_time = time.time()
 
-    # Print the learned kernel and iteration details
-    print(f"Kernel learned: {gp.kernel_}")
+    # Print more parameters and iteration details
     print(params)
     print(f"Iteration time: {conclude_time - start_time:.2f} seconds")
     print("\n")
@@ -185,6 +185,8 @@ if __name__ == "__main__":
     counter = 0
     # Iterate over each combination of feature columns
     for comb_feat in comb_feats:
+        selected_features = np.array(SEL_FEATS)[comb_feat]
+        x_selected = x_all[:, comb_feat]
         # Iterate over each scaler within the scalers list
         for scaler in scalers:
             # Iterate over the noise switch (Yes/No)
@@ -204,8 +206,9 @@ if __name__ == "__main__":
                                            length_scale_bounds=(1e-3, 1e3)))
 
                     all_par_sets.append((GPR(kernel=kernel, scaler=scaler,
-                                             feats=comb_feat, idx=counter),
-                                         x_all[:, comb_feat],
+                                             feats=selected_features,
+                                             idx=counter),
+                                         x_selected,
                                          y_all, x_indexes_train,
                                          x_indexes_test))
 
@@ -242,8 +245,10 @@ if __name__ == "__main__":
         best_index = lml_scores.argmax()  # Find the index of the best LML score
     # Get the parameter set corresponding to the best score
     best_par_set = all_par_sets_updated[best_index]
+    # Print the total number of iterations
+    print(f"\nTotal number of iterations: {counter}")
     # Print the index of the best iteration
-    print(f"\nBest iteration: {best_index}")
+    print(f"Best iteration: {best_index}")
     if BEST_R2:
         # Print the best R2 score
         print(f"Best R2 score: {r2_test_scores[best_index]}")
@@ -255,8 +260,10 @@ if __name__ == "__main__":
 
     # Extract and check results by re-computing without pipe
     best_scaler = best_par_set.scaler
-    x_train_scaled = best_scaler.fit_transform(x_train[:, best_par_set.feats])
-    x_test_scaled = best_scaler.transform(x_test[:, best_par_set.feats])
+    best_feats = best_par_set.feats
+    feats_indexes = [SEL_FEATS.index(feature) for feature in best_feats]
+    x_train_scaled = best_scaler.fit_transform(x_train[:, feats_indexes])
+    x_test_scaled = best_scaler.transform(x_test[:, feats_indexes])
     best_gp = GaussianProcessRegressor(kernel=best_par_set.kernel,
                                        n_restarts_optimizer=50,
                                        random_state=42,
@@ -291,7 +298,7 @@ if __name__ == "__main__":
           f" {datetime.timedelta(seconds=total_time)}")
 
     if SAVE_PLOTS or SHOW_PLOTS:
-        x_all_scaled = best_scaler.transform(x_all[:, best_par_set.feats])
+        x_all_scaled = best_scaler.transform(x_all[:, feats_indexes])
         y_mean, y_cov = best_gp.predict(x_all_scaled, return_cov=True)
         # Create plotter instance and plot
         plotter = PlotGPR(data, f"GPR with {best_gp.kernel_}",
