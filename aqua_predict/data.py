@@ -5,6 +5,7 @@ import time
 import datetime
 from plot import PlotBp, PlotCorr, PlotTS
 from config import *
+from fun import *
 
 
 def identify_outliers(feature, data):
@@ -132,7 +133,7 @@ def plot_pairplot(data, feat1=None, feat2=None, file_name=None, path=None):
     """
     corr_matrix = data[[feat1] + feat2]
     pp = PlotCorr(corr_matrix, title=f"Correlation pairplot of {file_name}",
-                  fig_size=(15, 8), dpi=150)
+                  fig_size=(20, 10), dpi=150)
     if path:
         return pp.plot_pp(path)
     else:
@@ -183,6 +184,60 @@ def selected_features(data, feat1=None, feat2=None, threshold=0.8):
         if not is_highly_correlated(feature, selected_features, corr_matrix, threshold=threshold):
             selected_features.append(feature)
     return selected_features
+
+
+def process_data(data, wv_label, suffix, show_boxplots, show_timeseries,
+                 show_corr, show_sel_feats, save_plot):
+    """
+    Processes the given data by generating and optionally saving
+    various plots based on provided flags
+    :param data: PD.DATAFRAME containing the data to plot and analyze
+    :param wv_label: STR indicating the code name of the water supply
+    company
+    :param suffix: STR for differentiating if the data contains
+    outliers or not
+    :param show_boxplots: BOOL indicating whether to display
+    the boxplots
+    :param show_timeseries: BOOL indicating whether to display the
+    timeseries plots
+    :param show_corr: BOOL indicating whether to display the heatmaps
+    and pairplots
+    :param show_sel_feats: BOOL indicating whether to display the
+    selected features based on correlation or other criteria
+    :param save_plot: BOOL indicating whether to save the current plot
+    :return: None
+    """
+    if show_boxplots:
+        print(data)
+        data_handler.print_outliers(FEAT[0], data,
+                                    show_results=True)
+        plot_boxplot(FEAT[0], FEAT[1], data, wv_label)
+        if save_plot:
+            create_directory(DIR_BOXPLOTS)
+            path = f"{DIR_BOXPLOTS}/bp_{suffix}_in_{wv_label}.png"
+            plot_boxplot(FEAT[0], FEAT[1], data, wv_label, path)
+    if show_timeseries:
+        plot_timeseries(data, FEAT[0], wv_label)
+        if save_plot:
+            create_directory(DIR_TIMESERIES)
+            path = f"{DIR_TIMESERIES}/ts_{suffix}_in_{wv_label}.png"
+            plot_timeseries(data, FEAT[0], wv_label, path)
+    if show_corr:
+        plot_heatmap(data, COL_TAR, COL_FEAT, wv_label)
+        if save_plot:
+            create_directory(DIR_HEATMAPS)
+            path = f"{DIR_HEATMAPS}/hm_{suffix}_in_{wv_label}.png"
+            plot_heatmap(data, COL_TAR, COL_FEAT, wv_label, path)
+        plot_pairplot(data, COL_TAR, COL_FEAT, wv_label)
+        if save_plot:
+            create_directory(DIR_PAIRPLOTS)
+            path = f"{DIR_PAIRPLOTS}/pp_{suffix}_in_{wv_label}.png"
+            plot_pairplot(data, COL_TAR, COL_FEAT, wv_label, path)
+        if show_sel_feats:
+            final_features = selected_features(
+                data, COL_TAR, COL_FEAT, threshold=0.7
+            )
+            print(f"Selected features: {final_features}")
 
 
 class DataManager(PlotBp, PlotCorr):
@@ -360,22 +415,14 @@ if __name__ == "__main__":
     init_time = time.time()
 
     # File names
-    FNAME = "Auswertung WV14 Unteres Elsenztal.xlsx"
+    # FNAME = "Auswertung WV14 Unteres Elsenztal.xlsx"
     # FNAME = "Auswertung WV25 SW Füssen.xlsx"
-    # FNAME = "Auswertung WV69 SW Landshut.xlsx"
+    FNAME = "Auswertung WV69 SW Landshut.xlsx"
 
     # Parameter(s) to investigate
     # FEAT = [COL_TAR, UNIT_TAR]
     # FEAT = [COL_FEAT, UNIT_FEAT]
     FEAT = [COL_ALL, UNIT_ALL]
-
-    # Flags
-    SHOW_WITH_OUTLIERS = True
-    SHOW_WITHOUT_OUTLIERS = True
-    SHOW_TIMESERIES = True
-    SHOW_CORR = True
-    SHOW_SEL_FEATS = False
-    SAVE_PLOT = True
 
     # Directories to create
     DIR_BOXPLOTS = "../plots/bp/"
@@ -383,92 +430,26 @@ if __name__ == "__main__":
     DIR_HEATMAPS = "../plots/hm/"
     DIR_PAIRPLOTS = "../plots/pp/"
 
+    # Flags
+    SHOW_BOXPLOTS = True
+    SHOW_TIMESERIES = True
+    SHOW_CORR = True
+    SHOW_SEL_FEATS = True
+    SAVE_PLOT = True
+
     try:
         # Instantiate an object of the DataManager class
         data_handler = DataManager(xlsx_file_name=FNAME)
         initial_data = data_handler.filter_data()
         wv_number = str(int(initial_data["WVU Nr. "].iloc[0]))
         wv_label = f"WV{wv_number}"
-        print(wv_label)
         cleaned_data = data_handler.iterative_cleaning(FEAT[0])
-        if SHOW_WITH_OUTLIERS:
-            print(initial_data)
-            data_handler.print_outliers(FEAT[0], initial_data,
-                                        show_results=True)
-            plot_boxplot(FEAT[0], FEAT[1], initial_data, wv_label)
-            if SAVE_PLOT:
-                if not os.path.exists(DIR_BOXPLOTS):
-                    print(f"Creation of {DIR_BOXPLOTS}")
-                    os.makedirs(DIR_BOXPLOTS)
-                PATH = f"{DIR_BOXPLOTS}/bp_w_outliers_in_{wv_label}.png"
-                plot_boxplot(FEAT[0], FEAT[1], initial_data, wv_label, PATH)
-            if SHOW_TIMESERIES:
-                plot_timeseries(initial_data, FEAT[0], wv_label)
-                if SAVE_PLOT:
-                    if not os.path.exists(DIR_TIMESERIES):
-                        print(f"Creation of {DIR_TIMESERIES}")
-                        os.makedirs(DIR_TIMESERIES)
-                    PATH = f"{DIR_TIMESERIES}/ts_w_outliers_in_{wv_label}.png"
-                    plot_timeseries(initial_data, FEAT[0], wv_label, PATH)
-            if SHOW_CORR:
-                plot_heatmap(initial_data, COL_TAR, COL_FEAT, wv_label)
-                if SAVE_PLOT:
-                    if not os.path.exists(DIR_HEATMAPS):
-                        print(f"Creation of {DIR_HEATMAPS}")
-                        os.makedirs(DIR_HEATMAPS)
-                    PATH = f"{DIR_HEATMAPS}/hm_w_outliers_in_{wv_label}.png"
-                    plot_heatmap(initial_data, COL_TAR, COL_FEAT, wv_label, PATH)
-                plot_pairplot(initial_data, COL_TAR, COL_FEAT, wv_label)
-                if SAVE_PLOT:
-                    if not os.path.exists(DIR_PAIRPLOTS):
-                        print(f"Creation of {DIR_PAIRPLOTS}")
-                        os.makedirs(DIR_PAIRPLOTS)
-                    PATH = f"{DIR_PAIRPLOTS}/pp_w_outliers_in_{wv_label}.png"
-                    plot_pairplot(initial_data, COL_TAR, COL_FEAT, wv_label, PATH)
-                if SHOW_SEL_FEATS:
-                    final_features = selected_features(
-                        initial_data, COL_TAR, COL_FEAT, threshold=0.7
-                    )
-                    print(f"Selected features: {final_features}")
-        if SHOW_WITHOUT_OUTLIERS:
-            print(cleaned_data)
-            data_handler.print_outliers(FEAT[0], cleaned_data,
-                                        show_results=True)
-            plot_boxplot(FEAT[0], FEAT[1], cleaned_data, wv_label)
-            if SAVE_PLOT:
-                if not os.path.exists(DIR_BOXPLOTS):
-                    print(f"Creation of {DIR_BOXPLOTS}")
-                    os.makedirs(DIR_BOXPLOTS)
-                PATH = f"{DIR_BOXPLOTS}/bp_wo_outliers_in_{wv_label}.png"
-                plot_boxplot(FEAT[0], FEAT[1], cleaned_data, wv_label, PATH)
-            if SHOW_TIMESERIES:
-                plot_timeseries(cleaned_data, FEAT[0], wv_label)
-                if SAVE_PLOT:
-                    if not os.path.exists(DIR_TIMESERIES):
-                        print(f"Creation of {DIR_TIMESERIES}")
-                        os.makedirs(DIR_TIMESERIES)
-                    PATH = f"{DIR_TIMESERIES}/ts_wo_outliers_in_{wv_label}.png"
-                    plot_timeseries(cleaned_data, FEAT[0], wv_label, PATH)
-            if SHOW_CORR:
-                plot_heatmap(cleaned_data, COL_TAR, COL_FEAT, wv_label)
-                if SAVE_PLOT:
-                    if not os.path.exists(DIR_HEATMAPS):
-                        print(f"Creation of {DIR_HEATMAPS}")
-                        os.makedirs(DIR_HEATMAPS)
-                    PATH = f"{DIR_HEATMAPS}/hm_wo_outliers_in_{wv_label}.png"
-                    plot_heatmap(cleaned_data, COL_TAR, COL_FEAT, wv_label, PATH)
-                plot_pairplot(cleaned_data, COL_TAR, COL_FEAT, wv_label)
-                if SAVE_PLOT:
-                    if not os.path.exists(DIR_PAIRPLOTS):
-                        print(f"Creation of {DIR_PAIRPLOTS}")
-                        os.makedirs(DIR_PAIRPLOTS)
-                    PATH = f"{DIR_PAIRPLOTS}/pp_wo_outliers_in_{wv_label}.png"
-                    plot_pairplot(cleaned_data, COL_TAR, COL_FEAT, wv_label, PATH)
-                if SHOW_SEL_FEATS:
-                    final_features = selected_features(
-                        cleaned_data, COL_TAR, COL_FEAT, threshold=0.7
-                    )
-                    print(f"Selected features: {final_features}")
+
+        process_data(initial_data, wv_label, "w_outliers", SHOW_BOXPLOTS,
+                     SHOW_TIMESERIES, SHOW_CORR, SHOW_SEL_FEATS, SAVE_PLOT)
+        process_data(cleaned_data, wv_label, "wo_outliers", SHOW_BOXPLOTS,
+                     SHOW_TIMESERIES, SHOW_CORR, SHOW_SEL_FEATS, SAVE_PLOT)
+
     except Exception as e:
         print(f"An error occurred: {e}")
 

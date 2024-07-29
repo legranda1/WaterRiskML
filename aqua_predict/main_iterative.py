@@ -110,11 +110,12 @@ if __name__ == "__main__":
     init_time = time.time()
 
     # Choose the file name of the Excel data you want to work with
-    FNAME = "Auswertung WV14 Unteres Elsenztal"
-    # FNAME = "Auswertung WV25 SW Füssen"
+    # FNAME = "Auswertung WV14 Unteres Elsenztal"
+    FNAME = "Auswertung WV25 SW Füssen"
     # FNAME = "Auswertung WV69 SW Landshut"
 
     # Flags
+    OUTLIERS = True
     BEST_R2 = True
     BEST_LML = False
     SHOW_PLOTS = True
@@ -122,7 +123,7 @@ if __name__ == "__main__":
     SAVE_WORKSPACE = True
 
     # Directories to create
-    DIR_PLOTS = "../plots"
+    DIR_PLOTS = "../plots/gpr/"
     DIR_OUT_DATA = "../output_data"
 
     # System Configuration: CPU Allocation and Data Chunking
@@ -135,8 +136,14 @@ if __name__ == "__main__":
     # CHUNK_SIZE = 100
 
     # Load and filter the data
-    data = DataManager(xlsx_file_name=f"{FNAME}.xlsx").filter_data()
-    # data = DataManager(xlsx_file_name=f"{FNAME}.xlsx").iterative_cleaning(COL_ALL)
+    if OUTLIERS:
+        data = DataManager(xlsx_file_name=f"{FNAME}.xlsx").filter_data()
+        suffix = "w_outliers"
+    else:
+        data = DataManager(xlsx_file_name=f"{FNAME}.xlsx").iterative_cleaning(COL_ALL)
+        suffix = "wo_outliers"
+    wv_number = str(int(data["WVU Nr. "].iloc[0]))
+    wv_label = f"WV{wv_number}"
 
     SEL_FEATS = selected_features(data, COL_TAR, COL_FEAT, threshold=0.7)
 
@@ -305,15 +312,13 @@ if __name__ == "__main__":
                           "Time [Month/Year]",
                           "Monthly per capita water consumption [L/(C*d)]",
                           1.96,
-                          fig_size=(12, 6))
+                          fig_size=(12, 6), dpi=150)
         if SHOW_PLOTS:
             plotter.plot(y_train, y_test, y_mean, y_cov, r2=r2_test)
         if SAVE_PLOTS:
-            if not os.path.exists(DIR_PLOTS):
-                print(f"Creation of {DIR_PLOTS}")
-                os.makedirs(DIR_PLOTS)
-            PATH = f"{DIR_PLOTS}/best_gpr_found_in_{FNAME}.png"
-            plotter.plot(y_train, y_test, y_mean, y_cov, r2=r2_test, file_name=PATH)
+            create_directory(DIR_PLOTS)
+            path = f"{DIR_PLOTS}/best_gpr_{suffix}_found_in_{wv_label}.png"
+            plotter.plot(y_train, y_test, y_mean, y_cov, r2=r2_test, file_name=path)
 
     if SAVE_WORKSPACE and result.successful():
         workspace = {"best_par_set": best_par_set,
@@ -324,10 +329,8 @@ if __name__ == "__main__":
                      "x_indexes_train": x_indexes_train,
                      "x_indexes_test": x_indexes_test,
                      "time": total_time}
-        if not os.path.exists(DIR_OUT_DATA):
-            print(f"Creation of {DIR_OUT_DATA}")
-            os.makedirs(DIR_OUT_DATA)
-        PATH = f"{DIR_OUT_DATA}/gpr_workspace_of_{FNAME}.pkl"  # .pkl for Pickle files
-        print(f"Writing output to {PATH}")
-        with open(PATH, "wb") as out_file:  # Open the file for writing in binary mode
+        create_directory(DIR_OUT_DATA)
+        path = f"{DIR_OUT_DATA}/gpr_workspace_{suffix}_in_{wv_label}.pkl"  # .pkl for Pickle files
+        print(f"Writing output to {path}")
+        with open(path, "wb") as out_file:  # Open the file for writing in binary mode
             pickle.dump(workspace, out_file)  # Save the workspace to the .pkl file

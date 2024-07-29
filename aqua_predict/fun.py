@@ -1,3 +1,6 @@
+import os
+
+
 def split_data(data, split_ratio=0.7):
     """
     Split data into training and testing sets based on a split ratio.
@@ -13,3 +16,17 @@ def split_data(data, split_ratio=0.7):
     test_data = data[split_point:]
 
     return train_data, test_data
+
+
+def create_directory(directory):
+    """
+    Create a directory if it does not already exist
+    :param directory: STR with the path of the directory to be created
+    :return: None
+    """
+    # Check if the directory does not exist
+    if not os.path.exists(directory):
+        # Print a message indicating the directory is being created
+        print(f"Creation of {directory}")
+        # Create the directory (and any intermediate directories if necessary)
+        os.makedirs(directory)

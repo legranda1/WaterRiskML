@@ -1,12 +1,13 @@
 import matplotlib.pyplot as plt
 import matplotlib.cm as cm
 import numpy as np
+import pandas as pd
 import seaborn as sns
 from fun import *
 
 
 class PlotBp:
-    def __init__(self, df=None, title="Boxplot of inputs",
+    def __init__(self, df=None, title="Boxplot",
                  ylabel="Ranges", fig_size=(14, 6), dpi=150):
         """
         Initialize the PlotBp class.
@@ -22,13 +23,17 @@ class PlotBp:
         self.fig_size = fig_size
         self.dpi = dpi
 
-    def plotdf(self, features):
+    def plotdf(self, features, path=None):
         """
         Generate and display a boxplot of a dataframe for the
         specified features
         :param features: LIST of strings with the specified features
+        :param path: STR with the name of the path to save the plot
         :return: None
         """
+        if not isinstance(self.df, pd.DataFrame):
+            raise ValueError("df must be a pandas DataFrame")
+
         plt.figure(figsize=self.fig_size)  # Create a new figure
         axes = plt.gca()  # Get current axes
 
@@ -38,7 +43,14 @@ class PlotBp:
 
         # Plot boxplot
         self.df.boxplot(column=features)
-        plt.show()
+
+        if path:
+            plt.savefig(path, dpi=self.dpi,
+                        bbox_inches="tight", pad_inches=0.25)
+            plt.close()
+        else:
+            plt.tight_layout()
+            plt.show()
 
     def plot(self, features, units, path=None):
         """
@@ -102,7 +114,6 @@ class PlotBp:
                         bbox_inches="tight", pad_inches=0.25)
             plt.close()
         else:
-            plt.tight_layout()
             plt.show()
 
 
@@ -186,14 +197,15 @@ class PlotCorr:
                                 ha='center', va='center', fontsize=7)
 
         plt.suptitle(self.title)
+        plt.tight_layout(rect=[0, 0, 1, 0.95])
 
         if path:
-            plt.savefig(path, dpi=self.dpi,
-                        bbox_inches="tight", pad_inches=0.25)
+            pp.fig.set_size_inches(self.fig_size)
+            pp.savefig(path, dpi=self.dpi,
+                       bbox_inches="tight", pad_inches=0.25)
             plt.close()
         else:
             # Show the plot
-            plt.tight_layout()
             plt.show()
 
 
