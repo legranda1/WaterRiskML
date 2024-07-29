@@ -7,18 +7,20 @@ from fun import *
 
 class PlotBp:
     def __init__(self, df=None, title="Boxplot of inputs",
-                 ylabel="Ranges", fig_size=(14, 6)):
+                 ylabel="Ranges", fig_size=(14, 6), dpi=150):
         """
         Initialize the PlotBp class.
         :param df: PD.DATAFRAME containing the data
         :param title: STR with the title of the boxplot
         :param ylabel: STR with the Y-axis label
         :param fig_size: TUPLE with the figure size for the plot
+        :param dpi: INT with the expected dots per inch of the figure
         """
         self.df = df
         self.title = title
         self.ylabel = ylabel
         self.fig_size = fig_size
+        self.dpi = dpi
 
     def plotdf(self, features):
         """
@@ -38,12 +40,13 @@ class PlotBp:
         self.df.boxplot(column=features)
         plt.show()
 
-    def plot(self, features, units):
+    def plot(self, features, units, path=None):
         """
         Generate and display a boxplot for the specified features
         :param features: LIST of strings with the specified features
         :param units: LIST of strings with the units corresponding to
         each feature
+        :param path: STR with the name of the path to save the plot
         :return: None
         """
         plt.figure(figsize=self.fig_size)  # Create a new figure
@@ -94,11 +97,18 @@ class PlotBp:
                           ha="center", va="bottom",
                           fontsize=10, color="black")
 
-        plt.show()
+        if path:
+            plt.savefig(path, dpi=self.dpi,
+                        bbox_inches="tight", pad_inches=0.25)
+            plt.close()
+        else:
+            plt.tight_layout()
+            plt.show()
 
 
 class PlotCorr:
-    def __init__(self, df=None, title="Correlatiom"):
+    def __init__(self, df=None, title="Correlatiom",
+                 fig_size=(8, 6), dpi=150):
         """
         Initialize the PlotCorr class.
         :param df: PD.DATAFRAME containing the filtered data
@@ -106,25 +116,36 @@ class PlotCorr:
         """
         self.df = df
         self.title = title
+        self.fig_size = fig_size
+        self.dpi = dpi
 
-    def plot_hm(self):
+    def plot_hm(self, path=None):
         """
         Generate and display a correlation coefficient
         heatmap for the specified features
+        :param path: STR with the name of the path to save the plot
         :return: None
         """
-        plt.figure(figsize=(8, 6))
+        plt.figure(figsize=self.fig_size)
         # Plot heat map
         sns.heatmap(self.df, annot=True, fmt=".2f", cmap="coolwarm",
                     cbar=True, square=True, linewidths=0.5)
         plt.suptitle(self.title)
-        plt.tight_layout()
-        plt.show()
 
-    def plot_pp(self):
+        if path:
+            plt.savefig(path, dpi=self.dpi,
+                        bbox_inches="tight", pad_inches=0.25)
+            plt.close()
+        else:
+            # Show the plot
+            plt.tight_layout()
+            plt.show()
+
+    def plot_pp(self, path=None):
         """
         Generate and display a correlation pairplot for the
         specified features
+        :param path: STR with the name of the path to save the plot
         :return: None
         """
         # Plot pairplot
@@ -135,8 +156,8 @@ class PlotCorr:
         # horizontally
         for ax in pp.axes.flatten():
             if ax is not None:
-                ax.tick_params(axis='x', labelsize=8)
-                ax.tick_params(axis='y', labelsize=8)
+                ax.tick_params(axis="x", labelsize=8)
+                ax.tick_params(axis="y", labelsize=8)
                 ax.xaxis.label.set_size(8)
                 ax.yaxis.label.set_size(8)
                 ax.yaxis.get_label().set_rotation(0)
@@ -165,8 +186,15 @@ class PlotCorr:
                                 ha='center', va='center', fontsize=7)
 
         plt.suptitle(self.title)
-        plt.tight_layout()
-        plt.show()
+
+        if path:
+            plt.savefig(path, dpi=self.dpi,
+                        bbox_inches="tight", pad_inches=0.25)
+            plt.close()
+        else:
+            # Show the plot
+            plt.tight_layout()
+            plt.show()
 
 
 class PlotGPR:
@@ -268,12 +296,13 @@ class PlotGPR:
             plt.close(self.fig)
         else:
             # Show the plot
+            plt.tight_layout()
             plt.show()
 
 
 class PlotTS:
     def __init__(self, df=None, title="Time series of features",
-                 xlabel="Time", ylabel="Ranges", fig_size=(14, 6)):
+                 xlabel="Time", ylabel="Ranges", fig_size=(14, 6), dpi=150):
         """
         Initialize the PlotTS class.
         :param df: PD.DATAFRAME containing the data
@@ -287,11 +316,13 @@ class PlotTS:
         self.xlabel = xlabel
         self.ylabel = ylabel
         self.figure_size = fig_size
+        self.dpi = dpi
 
-    def plot(self, features):
+    def plot(self, features, path=None):
         """
         Plots the time series of different features
         :param features: LIST of STR with the names of the respective feature
+        :param path: STR with the name of the path to save the plot
         :return: None
         """
         plt.figure(figsize=self.figure_size)  # Create a new figure
@@ -322,5 +353,10 @@ class PlotTS:
         axes.tick_params(axis="x", rotation=70)
         axes.legend(ncol=5)
 
-        # Show the plot
-        plt.show()
+        if path:
+            plt.savefig(path, dpi=self.dpi,
+                        bbox_inches="tight", pad_inches=0.25)
+            plt.close()
+        else:
+            plt.tight_layout()
+            plt.show()
