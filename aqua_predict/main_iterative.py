@@ -110,8 +110,8 @@ if __name__ == "__main__":
     init_time = time.time()
 
     # Choose the file name of the Excel data you want to work with
-    # FNAME = "Auswertung WV14 Unteres Elsenztal"
-    FNAME = "Auswertung WV25 SW Füssen"
+    FNAME = "Auswertung WV14 Unteres Elsenztal"
+    # FNAME = "Auswertung WV25 SW Füssen"
     # FNAME = "Auswertung WV69 SW Landshut"
 
     # Flags
@@ -145,7 +145,11 @@ if __name__ == "__main__":
     wv_number = str(int(data["WVU Nr. "].iloc[0]))
     wv_label = f"WV{wv_number}"
 
-    SEL_FEATS = selected_features(data, COL_TAR, COL_FEAT, threshold=0.7)
+    SEL_FEATS = ["pot Evap"]
+
+    #SEL_FEATS = selected_features(
+    #    data, COL_TAR, COL_FEAT, prioritize_feature="T Monat Mittel"
+    #)
 
     # Extraction of all input and output data
     x_all = np.array(data[SEL_FEATS])
@@ -317,7 +321,7 @@ if __name__ == "__main__":
             plotter.plot(y_train, y_test, y_mean, y_cov, r2=r2_test)
         if SAVE_PLOTS:
             create_directory(DIR_PLOTS)
-            path = f"{DIR_PLOTS}/best_gpr_{suffix}_found_in_{wv_label}.png"
+            path = f"{DIR_PLOTS}/best_gpr_of_{best_feats}_{suffix}_found_in_{wv_label}.png"
             plotter.plot(y_train, y_test, y_mean, y_cov, r2=r2_test, file_name=path)
 
     if SAVE_WORKSPACE and result.successful():
@@ -330,7 +334,7 @@ if __name__ == "__main__":
                      "x_indexes_test": x_indexes_test,
                      "time": total_time}
         create_directory(DIR_OUT_DATA)
-        path = f"{DIR_OUT_DATA}/gpr_workspace_{suffix}_in_{wv_label}.pkl"  # .pkl for Pickle files
+        path = f"{DIR_OUT_DATA}/gpr_workspace_of_{best_feats}_{suffix}_in_{wv_label}.pkl"  # .pkl for Pickle files
         print(f"Writing output to {path}")
         with open(path, "wb") as out_file:  # Open the file for writing in binary mode
             pickle.dump(workspace, out_file)  # Save the workspace to the .pkl file

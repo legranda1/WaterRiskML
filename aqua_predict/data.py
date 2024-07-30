@@ -165,24 +165,65 @@ def is_highly_correlated(feature, selected_features,
     return False
 
 
-def selected_features(data, feat1=None, feat2=None, threshold=0.8):
+def is_lowly_correlated(feature, selected_features, corr_matrix):
     """
+    Checks if a given feature is lowly correlated with any of the
+    already selected features
+    :param feature: STR with the name of the feature to be checked for
+    low correlation
+    :param selected_features: LIST of strings containing the already
+    selected features
+    :param corr_matrix: PD.DATAFRAME containing correlation coefficients
+    between features
+    :return: BOOL which returns True if the feature is lowly correlated
+    with all selected features, otherwise False
+    """
+    # If no features are selected yet, consider the feature as not
+    # correlated
+    if not selected_features:
+        return True
 
+    # Iterate over each selected feature
+    for selected_feature in selected_features:
+        # Check if the absolute correlation between the current feature and any selected feature
+        # is non-zero (i.e., there is some correlation, even if small)
+        if abs(corr_matrix.loc[feature, selected_feature]) > 0:
+            return False
+    return True
+
+
+def selected_features(data, feat1=None, feat2=None, prioritize_feature=None):
+    """
+    Selects features based on their correlation with a target feature
+    and ensures a specific feature is always listed first.
     :param data: PD.DATAFRAME with the dataset to plot
     :param feat1: STR of the target variable (output)
     :param feat2: LIST of strings of feature names (inputs)
     :param threshold: FLOAT above which two features are considered
     highly correlated
+    :param prioritize_feature: STR with the feature to prioritize
     :return: LIST of strings with the selected_features
     """
+    # Compute the correlation matrix
     corr_matrix = data[[feat1] + feat2].corr()
+    # Sort features by their correlation with the target feature
     target_corr = corr_matrix[feat1].drop(feat1).abs().sort_values(ascending=False)
+
+    # Initialize the list of selected features
     selected_features = []
+    # Add the prioritized feature if it's in the list
+    if prioritize_feature and prioritize_feature in target_corr.index:
+        selected_features.append(prioritize_feature)
+        # Remove the prioritized feature from the target_corr index to avoid re-adding
+        target_corr = target_corr.drop(prioritize_feature)
+
+    # Iterate through the sorted features
     for feature in target_corr.index:
         # If the feature is not highly correlated with any of the
         # selected features
-        if not is_highly_correlated(feature, selected_features, corr_matrix, threshold=threshold):
+        if is_lowly_correlated(feature, selected_features, corr_matrix):
             selected_features.append(feature)
+
     return selected_features
 
 
@@ -233,11 +274,11 @@ def process_data(data, wv_label, suffix, show_boxplots, show_timeseries,
             create_directory(DIR_PAIRPLOTS)
             path = f"{DIR_PAIRPLOTS}/pp_{suffix}_in_{wv_label}.png"
             plot_pairplot(data, COL_TAR, COL_FEAT, wv_label, path)
-        if show_sel_feats:
-            final_features = selected_features(
-                data, COL_TAR, COL_FEAT, threshold=0.7
-            )
-            print(f"Selected features: {final_features}")
+    if show_sel_feats:
+        final_features = selected_features(
+            data, COL_TAR, COL_FEAT, prioritize_feature="T Monat Mittel"
+        )
+        print(f"Selected features: {final_features}")
 
 
 class DataManager(PlotBp, PlotCorr):
@@ -415,9 +456,9 @@ if __name__ == "__main__":
     init_time = time.time()
 
     # File names
-    # FNAME = "Auswertung WV14 Unteres Elsenztal.xlsx"
+    FNAME = "Auswertung WV14 Unteres Elsenztal.xlsx"
     # FNAME = "Auswertung WV25 SW Füssen.xlsx"
-    FNAME = "Auswertung WV69 SW Landshut.xlsx"
+    # FNAME = "Auswertung WV69 SW Landshut.xlsx"
 
     # Parameter(s) to investigate
     # FEAT = [COL_TAR, UNIT_TAR]
@@ -431,11 +472,11 @@ if __name__ == "__main__":
     DIR_PAIRPLOTS = "../plots/pp/"
 
     # Flags
-    SHOW_BOXPLOTS = True
-    SHOW_TIMESERIES = True
-    SHOW_CORR = True
+    SHOW_BOXPLOTS = False
+    SHOW_TIMESERIES = False
+    SHOW_CORR = False
     SHOW_SEL_FEATS = True
-    SAVE_PLOT = True
+    SAVE_PLOT = False
 
     try:
         # Instantiate an object of the DataManager class
