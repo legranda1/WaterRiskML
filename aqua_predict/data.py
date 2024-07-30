@@ -141,7 +141,7 @@ def plot_pairplot(data, feat1=None, feat2=None, file_name=None, path=None):
 
 
 def is_highly_correlated(feature, selected_features,
-                         corr_matrix, threshold=0.8):
+                         corr_matrix):
     """
     Checks if a given feature is highly correlated with any of the
     already selected features
@@ -151,8 +151,6 @@ def is_highly_correlated(feature, selected_features,
     selected features
     :param corr_matrix: PD.DATAFRAME containing correlation
     coefficients between features
-    :param threshold: FLOAT above which two features are considered
-    highly correlated
     :return: BOOL which returns True if the feature is highly
     correlated with any of the selected features, otherwise False
     """
@@ -160,7 +158,7 @@ def is_highly_correlated(feature, selected_features,
     for selected_feature in selected_features:
         # Check if the absolute correlation between the current feature
         # and any selected feature exceeds the threshold
-        if abs(corr_matrix.loc[feature, selected_feature]) > threshold:
+        if abs(corr_matrix.loc[feature, selected_feature]) > 0.7:
             return True
     return False
 
@@ -187,7 +185,7 @@ def is_lowly_correlated(feature, selected_features, corr_matrix):
     for selected_feature in selected_features:
         # Check if the absolute correlation between the current feature and any selected feature
         # is non-zero (i.e., there is some correlation, even if small)
-        if abs(corr_matrix.loc[feature, selected_feature]) > 0:
+        if abs(corr_matrix.loc[feature, selected_feature]) > 0.3:
             return False
     return True
 
@@ -278,7 +276,7 @@ def process_data(data, wv_label, suffix, show_boxplots, show_timeseries,
         final_features = selected_features(
             data, COL_TAR, COL_FEAT, prioritize_feature="T Monat Mittel"
         )
-        print(f"Selected features: {final_features}")
+        print(f"Selected features {suffix}: {final_features}")
 
 
 class DataManager(PlotBp, PlotCorr):
