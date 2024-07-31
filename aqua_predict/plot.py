@@ -65,8 +65,8 @@ class PlotBp:
         axes = plt.gca()  # Get current axes
 
         # Set the title and labels
-        axes.set_title(self.title)
-        axes.set_ylabel(self.ylabel)
+        axes.set_title(self.title, fontsize=12)
+        axes.set_ylabel(self.ylabel, fontsize=11)
 
         # Prepare data for boxplot
         if isinstance(features, str):
@@ -107,7 +107,11 @@ class PlotBp:
                           xycoords=("data", "axes fraction"),
                           xytext=(0, -15), textcoords="offset points",
                           ha="center", va="bottom",
-                          fontsize=10, color="black")
+                          fontsize=11, color="black")
+
+        # Increase font sizes of tick labels
+        axes.tick_params(axis='x', labelsize=11)
+        axes.tick_params(axis='y', labelsize=11)
 
         if path:
             plt.savefig(path, dpi=self.dpi,

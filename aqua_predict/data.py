@@ -60,6 +60,24 @@ def clean_data(feature, data):
     return data
 
 
+def clean_tar(target, data):
+    """
+    Cleans the data by removing outliers from the target.
+    :param data: PD.DATAFRAME with the dataset to clean
+    :param target: STR with the name of the target column
+    in which to extract the outliers
+    :return: PD.DATAFRAME containing the data without outliers
+    """
+    # Identify outlier values in the target
+    outliers_values = identify_outliers(target, data)
+    # Remove rows where the target column contains
+    # outlier values
+    data = data[~data[target].isin(outliers_values)]
+
+    # Return the cleaned data
+    return data
+
+
 def plot_timeseries(data, feats, file_name, path=None):
     """
     Plots a time series plot for the specified features.
@@ -454,9 +472,7 @@ if __name__ == "__main__":
     init_time = time.time()
 
     # File names
-    FNAME = "Auswertung WV14 Unteres Elsenztal.xlsx"
-    # FNAME = "Auswertung WV25 SW Füssen.xlsx"
-    # FNAME = "Auswertung WV69 SW Landshut.xlsx"
+    FNAME = FNAMES[0]
 
     # Parameter(s) to investigate
     # FEAT = [COL_TAR, UNIT_TAR]
@@ -470,11 +486,11 @@ if __name__ == "__main__":
     DIR_PAIRPLOTS = "../plots/pp/"
 
     # Flags
-    SHOW_BOXPLOTS = False
-    SHOW_TIMESERIES = False
-    SHOW_CORR = False
+    SHOW_BOXPLOTS = True
+    SHOW_TIMESERIES = True
+    SHOW_CORR = True
     SHOW_SEL_FEATS = True
-    SAVE_PLOT = False
+    SAVE_PLOT = True
 
     try:
         # Instantiate an object of the DataManager class
@@ -482,10 +498,18 @@ if __name__ == "__main__":
         initial_data = data_handler.filter_data()
         wv_number = str(int(initial_data["WVU Nr. "].iloc[0]))
         wv_label = f"WV{wv_number}"
+        # Uncomment if you only want to clean the target once (i.e. no iterative process)
+        # cleaned_target = clean_tar("Gesamt/Kopf", initial_data)
+        cleaned_target = data_handler.iterative_cleaning("Gesamt/Kopf")
         cleaned_data = data_handler.iterative_cleaning(FEAT[0])
 
+        # Initial data
         process_data(initial_data, wv_label, "w_outliers", SHOW_BOXPLOTS,
                      SHOW_TIMESERIES, SHOW_CORR, SHOW_SEL_FEATS, SAVE_PLOT)
+        # Target cleaned
+        process_data(cleaned_target, wv_label, "tar_wo_outliers", SHOW_BOXPLOTS,
+                     SHOW_TIMESERIES, SHOW_CORR, SHOW_SEL_FEATS, SAVE_PLOT)
+        # All data cleaned
         process_data(cleaned_data, wv_label, "wo_outliers", SHOW_BOXPLOTS,
                      SHOW_TIMESERIES, SHOW_CORR, SHOW_SEL_FEATS, SAVE_PLOT)
 

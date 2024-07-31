@@ -61,3 +61,9 @@ UNIT_ALL = [
     "[-]",
     "[°C]"
 ]
+
+FNAMES = [
+    "Auswertung WV14 Unteres Elsenztal",
+    "Auswertung WV25 SW Füssen",
+    "Auswertung WV69 SW Landshut"
+]

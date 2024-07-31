@@ -1,20 +1,19 @@
 # Import the os module for interacting with the operating system
-import os
 import time
 import datetime
+import re
 # Importing pickle for serializing (converting Python objects to a byte
 # stream)  and deserializing (reconstructing Python objects from a byte
 # stream). This is useful for saving Python objects to a file or
 # transferring them over a network.
 import pickle
+import warnings
 # Import the Pool class from the multiprocessing module to handle
 # parallel processing
 from multiprocessing import Pool
-
-import matplotlib.pyplot as plt
 import numpy as np
-
-from data import *
+from config import *
+from data import DataManager
 from fun import *
 from plot import PlotGPR
 from gpr import GPR
@@ -26,6 +25,47 @@ from sklearn.gaussian_process import GaussianProcessRegressor
 from sklearn.gaussian_process.kernels import (ConstantKernel, Matern,
                                               WhiteKernel)
 from sklearn.metrics import root_mean_squared_error, mean_absolute_error
+from sklearn.exceptions import ConvergenceWarning
+
+logging.captureWarnings(True)
+
+# Choose the file name of the Excel data you want to work with
+FNAME = FNAMES[0]
+CODE_NAME = re.search(r"WV\d+", FNAME).group(0) \
+    if re.search(r"WV\d+", FNAME) else None
+
+SEL_FEATS = ["pot Evap"]
+# SEL_FEATS = selected_features(
+#    data, COL_TAR, COL_FEAT, prioritize_feature="T Monat Mittel"
+# )
+
+# Flags
+OUTLIERS = True  # Comment to try just wo outliers in the target
+BEST_R2 = True
+BEST_LML = False
+SHOW_PLOTS = True
+SAVE_PLOTS = True
+SAVE_WORKSPACE = True
+
+# Directories to create
+DIR_PLOTS = "../plots/gpr"
+DIR_OUT_DATA = "../output_data"
+
+# System Configuration: CPU Allocation and Data Chunking
+# Number of CPU cores used, impacting the speed and efficiency
+# of parallel processing.
+NUMBER_CPUS = 8
+# Controls the size of data units processed at a time (per CPU),
+# affecting load balancing and processing efficiency in parallel tasks
+CHUNK_SIZE = None
+# CHUNK_SIZE = 100
+
+if OUTLIERS:
+    NICK_NAME = "w_outliers"
+elif not OUTLIERS:
+    NICK_NAME = "wo_outliers"
+else:
+    NICK_NAME = "tar_wo_outliers"
 
 
 def col_combos(cols, min_len=1):
@@ -60,96 +100,92 @@ def fit_and_test(iter_params):
     testing indices (np.array)
     :return: The parameter object with updated performance metrics
     """
-    # Unpack the tuple
-    cnt_i = iter_params[0].idx  # Iteration counter
-    # Parameters (kernel, scaler, features, indexes, pipe, etc.)
-    params = iter_params[0]
-    features = iter_params[1]
-    targets = iter_params[2]
-    train_idx = iter_params[3]
-    test_idx = iter_params[4]
 
-    # Record the start time of the iteration
-    start_time = time.time()
-    print(f"Iteration = {cnt_i + 1}")
-    print(f"{params}\n")
+    start_logging(nick_name=NICK_NAME,
+                  code_name=CODE_NAME)
+    try:
+        # Unpack the tuple
+        cnt_i = iter_params[0].idx  # Iteration counter
+        # Parameters (kernel, scaler, features, indexes, pipe, etc.)
+        params = iter_params[0]
+        features = iter_params[1]
+        targets = iter_params[2]
+        train_idx = iter_params[3]
+        test_idx = iter_params[4]
 
-    # Get the pipeline from the parameters
-    pipeline = params.pipe
+        # Record the start time of the iteration
+        start_time = time.time()
+        info_logger = logging.getLogger("info_logger")
+        info_logger.info(f"Iteration = {cnt_i + 1}")
+        info_logger.info(f"{params}\n")
 
-    # Fit the pipeline to the training data
-    pipeline.fit(features[train_idx], targets[train_idx])
+        # Get the pipeline from the parameters
+        pipeline = params.pipe
 
-    # Get the GaussianProcessRegressor from the pipeline
-    gp = pipeline[1]
+        with warnings.catch_warnings(record=True) as caught_warnings:
+            warnings.simplefilter("always")
+            pipeline.fit(features[train_idx], targets[train_idx])
 
-    # Predict the target values for the testing data
-    predictions = pipeline.predict(features[test_idx])
+            for warning in caught_warnings:
+                if issubclass(warning.category, ConvergenceWarning):
+                    warning_logger = logging.getLogger("warning_logger")
+                    warning_logger.warning(f"ConvergenceWarning in iteration"
+                                           f" {cnt_i + 1}: {warning.message}")
 
-    # Calculate performance metrics and update the parameter object
-    params.kernel_learned = gp.kernel_
-    params.marg_lh = gp.log_marginal_likelihood_value_
-    params.r2_test = pipeline.score(features[test_idx], targets[test_idx])
-    params.rmse_test = root_mean_squared_error(targets[test_idx], predictions)
-    params.mae_test = mean_absolute_error(targets[test_idx], predictions)
+        # Get the GaussianProcessRegressor from the pipeline
+        gp = pipeline[1]
 
-    # Record the end time of the approach
-    conclude_time = time.time()
+        # Predict the target values for the testing data
+        predictions = pipeline.predict(features[test_idx])
 
-    # Print more parameters and iteration details
-    print(params)
-    print(f"Iteration time: {conclude_time - start_time:.2f} seconds")
-    print("\n")
+        # Calculate performance metrics and update the parameter object
+        params.kernel_learned = gp.kernel_
+        params.marg_lh = gp.log_marginal_likelihood_value_
+        params.r2_test = pipeline.score(features[test_idx], targets[test_idx])
+        params.rmse_test = root_mean_squared_error(targets[test_idx],
+                                                   predictions)
+        params.mae_test = mean_absolute_error(targets[test_idx], predictions)
 
-    # Return the updated parameter object
-    return params
+        # Record the end time of the approach
+        conclude_time = time.time()
+
+        # Print more parameters and iteration details
+        info_logger.info(params)
+        info_logger.info(f"Iteration time:"
+                         f" {conclude_time - start_time:.2f} seconds\n")
+
+        # Return the updated parameter object
+        return params
+
+    except Exception as e:
+        warning_logger = logging.getLogger("warning_logger")
+        warning_logger.warning(f"An error occurred: {str(e)}")
+        return None
 
 
-if __name__ == "__main__":
+@log_actions
+def main():
+    """
+    Main functionality of the script
+    :return: None or -1, but generates three log files
+    """
     # Record the initial time for tracking script duration
     init_time = time.time()
-
-    # Choose the file name of the Excel data you want to work with
-    FNAME = "Auswertung WV14 Unteres Elsenztal"
-    # FNAME = "Auswertung WV25 SW Füssen"
-    # FNAME = "Auswertung WV69 SW Landshut"
-
-    # Flags
-    OUTLIERS = True
-    BEST_R2 = True
-    BEST_LML = False
-    SHOW_PLOTS = True
-    SAVE_PLOTS = True
-    SAVE_WORKSPACE = True
-
-    # Directories to create
-    DIR_PLOTS = "../plots/gpr/"
-    DIR_OUT_DATA = "../output_data"
-
-    # System Configuration: CPU Allocation and Data Chunking
-    # Number of CPU cores used, impacting the speed and efficiency
-    # of parallel processing.
-    NUMBER_CPUS = 8
-    # Controls the size of data units processed at a time (per CPU),
-    # affecting load balancing and processing efficiency in parallel tasks
-    CHUNK_SIZE = None
-    # CHUNK_SIZE = 100
 
     # Load and filter the data
     if OUTLIERS:
         data = DataManager(xlsx_file_name=f"{FNAME}.xlsx").filter_data()
-        suffix = "w_outliers"
+    elif not OUTLIERS:
+        data = DataManager(
+            xlsx_file_name=f"{FNAME}.xlsx"
+        ).iterative_cleaning(COL_ALL)
     else:
-        data = DataManager(xlsx_file_name=f"{FNAME}.xlsx").iterative_cleaning(COL_ALL)
-        suffix = "wo_outliers"
-    wv_number = str(int(data["WVU Nr. "].iloc[0]))
-    wv_label = f"WV{wv_number}"
+        data = DataManager(
+            xlsx_file_name=f"{FNAME}.xlsx"
+        ).iterative_cleaning("Gesamt/Kopf")
 
-    SEL_FEATS = ["pot Evap"]
-
-    #SEL_FEATS = selected_features(
-    #    data, COL_TAR, COL_FEAT, prioritize_feature="T Monat Mittel"
-    #)
+    wv_code_number = str(int(data["WVU Nr. "].iloc[0]))
+    wv_code_label = f"WV{wv_code_number}"
 
     # Extraction of all input and output data
     x_all = np.array(data[SEL_FEATS])
@@ -241,13 +277,16 @@ if __name__ == "__main__":
             all_par_sets_updated = result.get()
             if BEST_LML:
                 # Extract LML scores from each parameter set
-                lml_scores = np.array([par_set.marg_lh for par_set in all_par_sets_updated])
+                lml_scores = np.array([par_set.marg_lh
+                                       for par_set in all_par_sets_updated])
             if BEST_R2:
                 # Extract R2 scores from each parameter set
-                r2_test_scores = np.array([par_set.r2_test for par_set in all_par_sets_updated])
+                r2_test_scores = np.array([par_set.r2_test
+                                           for par_set in all_par_sets_updated])
         else:
             # Handle case where GPR approach failed
-            print("\n\nGPR approach went wrong!")
+            warning_logger = logging.getLogger("warning_logger")
+            warning_logger.warning("\n\nGPR approach went wrong!")
 
     # Get the best
     if BEST_R2:
@@ -256,18 +295,19 @@ if __name__ == "__main__":
         best_index = lml_scores.argmax()  # Find the index of the best LML score
     # Get the parameter set corresponding to the best score
     best_par_set = all_par_sets_updated[best_index]
-    # Print the total number of iterations
-    print(f"\nTotal number of iterations: {counter}")
-    # Print the index of the best iteration
-    print(f"Best iteration: {best_index}")
+    # Log the total number of iterations
+    info_logger = logging.getLogger("info_logger")
+    info_logger.info(f"\nTotal number of iterations: {counter}")
+    # Log the index of the best iteration
+    info_logger.info(f"Best iteration: {best_index}")
     if BEST_R2:
-        # Print the best R2 score
-        print(f"Best R2 score: {r2_test_scores[best_index]}")
-        print(best_par_set)  # Print the best parameter set
+        # Log the best R2 score
+        info_logger.info(f"Best R2 score: {r2_test_scores[best_index]}")
+        info_logger.info(best_par_set)  # Log the best parameter set
     if BEST_LML:
-        # Print the best R2 score
-        print(f"Best LML score: {lml_scores[best_index]}")
-        print(best_par_set)  # Print the best parameter set
+        # Log the best LML score
+        info_logger.info(f"Best LML score: {lml_scores[best_index]}")
+        info_logger.info(best_par_set)  # Log the best parameter set
 
     # Extract and check results by re-computing without pipe
     best_scaler = best_par_set.scaler
@@ -280,7 +320,8 @@ if __name__ == "__main__":
                                        random_state=42,
                                        normalize_y=True,
                                        alpha=1e-10)
-    # If necessary, change x_train_scaled to x_all_scaled to fit the GPR to all data.
+    # If necessary, change x_train_scaled to x_all_scaled to fit
+    # the GPR to all data.
     best_gp.fit(x_train_scaled, y_train)
     marg_lh = best_gp.log_marginal_likelihood_value_
     y_pred_test = best_gp.predict(x_test_scaled)
@@ -288,7 +329,8 @@ if __name__ == "__main__":
     rmse_test = root_mean_squared_error(y_test, y_pred_test)
     mae_test = mean_absolute_error(y_test, y_pred_test)
 
-    # Check if the re-computed results differ significantly from the one with pipe
+    # Check if the re-computed results differ significantly
+    # from the one with pipe
     eps = 1.0e-10  # Tolerance for detecting significant differences
     check_error = (np.abs(best_par_set.marg_lh - marg_lh) > eps or
                    np.abs(best_par_set.r2_test - r2_test) > eps or
@@ -296,17 +338,20 @@ if __name__ == "__main__":
                    np.abs(best_par_set.mae_test - mae_test) > eps)
 
     if check_error:
-        print(f"\nNew fit, result change, difference > {eps}!")
-        print(f"log marginal likelihood (LML): {marg_lh}",
-              f"R2_test: {r2_test}", f"RMSE_test: {rmse_test}",
-              f"MAE_test: {mae_test}", sep="\n")
+        info_logger = logging.getLogger("info_logger")
+        info_logger.info("\nNew fit, result change, "
+                         "difference > {eps}!")
+        info_logger.info(f"log marginal likelihood (LML): {marg_lh}")
+        info_logger.info(f"R2_test: {r2_test}")
+        info_logger.info(f"RMSE_test: {rmse_test}")
+        info_logger.info(f"MAE_test: {mae_test}")
 
     # Record the end time of the approach
     end_time = time.time()
     total_time = end_time - init_time
     # Print the running time in seconds and as a timedelta
-    print(f"\nRunning time: \n{total_time:5.3f} seconds /"
-          f" {datetime.timedelta(seconds=total_time)}")
+    info_logger.info(f"\nRunning time: \n{total_time:5.3f} seconds "
+                     f"/ {datetime.timedelta(seconds=total_time)}")
 
     if SAVE_PLOTS or SHOW_PLOTS:
         x_all_scaled = best_scaler.transform(x_all[:, feats_indexes])
@@ -321,8 +366,10 @@ if __name__ == "__main__":
             plotter.plot(y_train, y_test, y_mean, y_cov, r2=r2_test)
         if SAVE_PLOTS:
             create_directory(DIR_PLOTS)
-            path = f"{DIR_PLOTS}/best_gpr_of_{best_feats}_{suffix}_found_in_{wv_label}.png"
-            plotter.plot(y_train, y_test, y_mean, y_cov, r2=r2_test, file_name=path)
+            path = (f"{DIR_PLOTS}/best_gpr_of_{best_feats}_{NICK_NAME}_"
+                    f"found_in_{wv_code_label}.png")
+            plotter.plot(y_train, y_test, y_mean,
+                         y_cov, r2=r2_test, file_name=path)
 
     if SAVE_WORKSPACE and result.successful():
         workspace = {"best_par_set": best_par_set,
@@ -334,7 +381,16 @@ if __name__ == "__main__":
                      "x_indexes_test": x_indexes_test,
                      "time": total_time}
         create_directory(DIR_OUT_DATA)
-        path = f"{DIR_OUT_DATA}/gpr_workspace_of_{best_feats}_{suffix}_in_{wv_label}.pkl"  # .pkl for Pickle files
-        print(f"Writing output to {path}")
-        with open(path, "wb") as out_file:  # Open the file for writing in binary mode
-            pickle.dump(workspace, out_file)  # Save the workspace to the .pkl file
+        # .pkl for Pickle files
+        path = (f"{DIR_OUT_DATA}/gpr_workspace_of_{best_feats}_{NICK_NAME}"
+                f"_in_{wv_code_label}.pkl")
+        info_logger.info(f"Writing output to {path}")
+        # Open the file for writing in binary mode
+        with open(path, "wb") as out_file:
+            # Save the workspace to the .pkl file
+            pickle.dump(workspace, out_file)
+
+
+if __name__ == "__main__":
+
+    main()
