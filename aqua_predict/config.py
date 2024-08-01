@@ -63,7 +63,7 @@ UNIT_ALL = [
 ]
 
 FNAMES = [
-    "Auswertung WV14 Unteres Elsenztal",
-    "Auswertung WV25 SW Füssen",
-    "Auswertung WV69 SW Landshut"
+    "Auswertung WV14 Unteres Elsenztal.xlsx",
+    "Auswertung WV25 SW Füssen.xlsx",
+    "Auswertung WV69 SW Landshut.xlsx"
 ]

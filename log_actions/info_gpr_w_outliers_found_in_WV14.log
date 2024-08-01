@@ -254,3 +254,259 @@ MAE_test: 10.654011292429576
 Running time: 
 45.401 seconds / 0:00:45.400727
 [2024-07-31 21:51:00,066] Writing output to ../output_data/gpr_workspace_of_['pot Evap']_w_outliers_in_WV14.pkl
+[2024-08-01 15:19:47,341] Iteration = 1
+[2024-08-01 15:19:47,695] Iteration = 2
+[2024-08-01 15:19:47,728] kernel: 1**2 * Matern(length_scale=1, nu=0.5) + WhiteKernel(noise_level=1e-05)
+scaler: StandardScaler()
+features: ['pot Evap']
+
+[2024-08-01 15:19:47,730] kernel: 1**2 * Matern(length_scale=1, nu=1.5) + WhiteKernel(noise_level=1e-05)
+scaler: StandardScaler()
+features: ['pot Evap']
+
+[2024-08-01 15:19:47,766] Iteration = 3
+[2024-08-01 15:19:47,768] kernel: 1**2 * Matern(length_scale=1, nu=2.5) + WhiteKernel(noise_level=1e-05)
+scaler: StandardScaler()
+features: ['pot Evap']
+
+[2024-08-01 15:19:48,047] Iteration = 4
+[2024-08-01 15:19:48,049] kernel: 1**2 * Matern(length_scale=1, nu=inf) + WhiteKernel(noise_level=1e-05)
+scaler: StandardScaler()
+features: ['pot Evap']
+
+[2024-08-01 15:19:48,504] Iteration = 5
+[2024-08-01 15:19:48,508] kernel: 1**2 * Matern(length_scale=1, nu=0.5)
+scaler: StandardScaler()
+features: ['pot Evap']
+
+[2024-08-01 15:19:48,601] Iteration = 6
+[2024-08-01 15:19:48,608] kernel: 1**2 * Matern(length_scale=1, nu=1.5)
+scaler: StandardScaler()
+features: ['pot Evap']
+
+[2024-08-01 15:19:48,647] Iteration = 7
+[2024-08-01 15:19:48,651] kernel: 1**2 * Matern(length_scale=1, nu=2.5)
+scaler: StandardScaler()
+features: ['pot Evap']
+
+[2024-08-01 15:19:49,032] Iteration = 8
+[2024-08-01 15:19:49,033] kernel: 1**2 * Matern(length_scale=1, nu=inf)
+scaler: StandardScaler()
+features: ['pot Evap']
+
+[2024-08-01 15:20:12,166] kernel_learned: 0.722**2 * Matern(length_scale=1.4, nu=0.5) + WhiteKernel(noise_level=0.761)
+kernel: 1**2 * Matern(length_scale=1, nu=0.5) + WhiteKernel(noise_level=1e-05)
+scaler: StandardScaler()
+features: ['pot Evap']
+log marginal likelihood (LML): -125.56715650039129
+R2_test: -0.1254993606015229
+RMSE_test: 14.385699627685065
+MAE_test: 10.767596649378904
+[2024-08-01 15:20:12,167] Iteration time: 24.82 seconds
+
+[2024-08-01 15:20:12,171] Iteration = 9
+[2024-08-01 15:20:12,172] kernel: 1**2 * Matern(length_scale=1, nu=0.5) + WhiteKernel(noise_level=1e-05)
+scaler: QuantileTransformer(n_quantiles=92, random_state=0)
+features: ['pot Evap']
+
+[2024-08-01 15:20:12,630] kernel_learned: 3.16**2 * Matern(length_scale=0.001, nu=0.5)
+kernel: 1**2 * Matern(length_scale=1, nu=0.5)
+scaler: StandardScaler()
+features: ['pot Evap']
+log marginal likelihood (LML): -61771261684.37053
+R2_test: -0.41074168515688747
+RMSE_test: 16.10579293777741
+MAE_test: 11.588564285220368
+[2024-08-01 15:20:12,631] Iteration time: 24.13 seconds
+
+[2024-08-01 15:20:12,638] Iteration = 10
+[2024-08-01 15:20:12,640] kernel: 1**2 * Matern(length_scale=1, nu=1.5) + WhiteKernel(noise_level=1e-05)
+scaler: QuantileTransformer(n_quantiles=92, random_state=0)
+features: ['pot Evap']
+
+[2024-08-01 15:20:13,479] kernel_learned: 3.16**2 * Matern(length_scale=0.001, nu=2.5)
+kernel: 1**2 * Matern(length_scale=1, nu=2.5)
+scaler: StandardScaler()
+features: ['pot Evap']
+log marginal likelihood (LML): -61771031062.069695
+R2_test: -0.41096101049291867
+RMSE_test: 16.107044857672367
+MAE_test: 11.587786856469432
+[2024-08-01 15:20:13,480] Iteration time: 24.83 seconds
+
+[2024-08-01 15:20:13,485] Iteration = 11
+[2024-08-01 15:20:13,486] kernel: 1**2 * Matern(length_scale=1, nu=2.5) + WhiteKernel(noise_level=1e-05)
+scaler: QuantileTransformer(n_quantiles=92, random_state=0)
+features: ['pot Evap']
+
+[2024-08-01 15:20:13,779] kernel_learned: 0.755**2 * Matern(length_scale=1.02, nu=2.5) + WhiteKernel(noise_level=0.797)
+kernel: 1**2 * Matern(length_scale=1, nu=2.5) + WhiteKernel(noise_level=1e-05)
+scaler: StandardScaler()
+features: ['pot Evap']
+log marginal likelihood (LML): -125.53054978693824
+R2_test: -0.07301525866084924
+RMSE_test: 14.046279650562317
+MAE_test: 10.672223334417817
+[2024-08-01 15:20:13,781] Iteration time: 26.01 seconds
+
+[2024-08-01 15:20:13,785] Iteration = 12
+[2024-08-01 15:20:13,787] kernel: 1**2 * Matern(length_scale=1, nu=inf) + WhiteKernel(noise_level=1e-05)
+scaler: QuantileTransformer(n_quantiles=92, random_state=0)
+features: ['pot Evap']
+
+[2024-08-01 15:20:13,849] kernel_learned: 3.16**2 * Matern(length_scale=0.00109, nu=inf)
+kernel: 1**2 * Matern(length_scale=1, nu=inf)
+scaler: StandardScaler()
+features: ['pot Evap']
+log marginal likelihood (LML): -61770972725.921616
+R2_test: -0.4105778737470005
+RMSE_test: 16.104857830638707
+MAE_test: 11.588667300682463
+[2024-08-01 15:20:13,850] Iteration time: 24.82 seconds
+
+[2024-08-01 15:20:13,854] Iteration = 13
+[2024-08-01 15:20:13,855] kernel: 1**2 * Matern(length_scale=1, nu=0.5)
+scaler: QuantileTransformer(n_quantiles=92, random_state=0)
+features: ['pot Evap']
+
+[2024-08-01 15:20:14,141] kernel_learned: 0.749**2 * Matern(length_scale=1.08, nu=1.5) + WhiteKernel(noise_level=0.791)
+kernel: 1**2 * Matern(length_scale=1, nu=1.5) + WhiteKernel(noise_level=1e-05)
+scaler: StandardScaler()
+features: ['pot Evap']
+log marginal likelihood (LML): -125.53066868471149
+R2_test: -0.08028019138152764
+RMSE_test: 14.093750146309311
+MAE_test: 10.686826085292957
+[2024-08-01 15:20:14,143] Iteration time: 26.45 seconds
+
+[2024-08-01 15:20:14,147] Iteration = 14
+[2024-08-01 15:20:14,148] kernel: 1**2 * Matern(length_scale=1, nu=1.5)
+scaler: QuantileTransformer(n_quantiles=92, random_state=0)
+features: ['pot Evap']
+
+[2024-08-01 15:20:14,290] kernel_learned: 0.785**2 * Matern(length_scale=0.946, nu=inf) + WhiteKernel(noise_level=0.801)
+kernel: 1**2 * Matern(length_scale=1, nu=inf) + WhiteKernel(noise_level=1e-05)
+scaler: StandardScaler()
+features: ['pot Evap']
+log marginal likelihood (LML): -125.4479039004485
+R2_test: -0.06707146523974172
+RMSE_test: 14.007322085634389
+MAE_test: 10.654011292429576
+[2024-08-01 15:20:14,292] Iteration time: 26.24 seconds
+
+[2024-08-01 15:20:14,295] Iteration = 15
+[2024-08-01 15:20:14,296] kernel: 1**2 * Matern(length_scale=1, nu=2.5)
+scaler: QuantileTransformer(n_quantiles=92, random_state=0)
+features: ['pot Evap']
+
+[2024-08-01 15:20:16,471] kernel_learned: 3.16**2 * Matern(length_scale=0.001, nu=1.5)
+kernel: 1**2 * Matern(length_scale=1, nu=1.5)
+scaler: StandardScaler()
+features: ['pot Evap']
+log marginal likelihood (LML): -61771012594.77693
+R2_test: -0.4108563896809352
+RMSE_test: 16.106447689027082
+MAE_test: 11.588090458044338
+[2024-08-01 15:20:16,473] Iteration time: 27.87 seconds
+
+[2024-08-01 15:20:16,477] Iteration = 16
+[2024-08-01 15:20:16,478] kernel: 1**2 * Matern(length_scale=1, nu=inf)
+scaler: QuantileTransformer(n_quantiles=92, random_state=0)
+features: ['pot Evap']
+
+[2024-08-01 15:20:21,712] kernel_learned: 2.15**2 * Matern(length_scale=0.0188, nu=0.5)
+kernel: 1**2 * Matern(length_scale=1, nu=0.5)
+scaler: QuantileTransformer(n_quantiles=92, random_state=0)
+features: ['pot Evap']
+log marginal likelihood (LML): -61771705550.60915
+R2_test: -0.19539766373148937
+RMSE_test: 14.825677988487538
+MAE_test: 11.873303997503998
+[2024-08-01 15:20:21,714] Iteration time: 7.86 seconds
+
+[2024-08-01 15:20:23,770] kernel_learned: 0.564**2 * Matern(length_scale=0.183, nu=inf) + WhiteKernel(noise_level=0.808)
+kernel: 1**2 * Matern(length_scale=1, nu=inf) + WhiteKernel(noise_level=1e-05)
+scaler: QuantileTransformer(n_quantiles=92, random_state=0)
+features: ['pot Evap']
+log marginal likelihood (LML): -125.63675217874865
+R2_test: -0.15855431945102616
+RMSE_test: 14.595418832434879
+MAE_test: 11.06481184741735
+[2024-08-01 15:20:23,771] Iteration time: 9.98 seconds
+
+[2024-08-01 15:20:23,790] kernel_learned: 0.553**2 * Matern(length_scale=0.152, nu=0.5) + WhiteKernel(noise_level=0.747)
+kernel: 1**2 * Matern(length_scale=1, nu=0.5) + WhiteKernel(noise_level=1e-05)
+scaler: QuantileTransformer(n_quantiles=92, random_state=0)
+features: ['pot Evap']
+log marginal likelihood (LML): -125.63516423636179
+R2_test: -0.17697145126551206
+RMSE_test: 14.710970549740223
+MAE_test: 11.052223292718622
+[2024-08-01 15:20:23,791] Iteration time: 11.62 seconds
+
+[2024-08-01 15:20:25,524] kernel_learned: 0.548**2 * Matern(length_scale=0.183, nu=2.5) + WhiteKernel(noise_level=0.801)
+kernel: 1**2 * Matern(length_scale=1, nu=2.5) + WhiteKernel(noise_level=1e-05)
+scaler: QuantileTransformer(n_quantiles=92, random_state=0)
+features: ['pot Evap']
+log marginal likelihood (LML): -125.68094329627948
+R2_test: -0.1663225247430009
+RMSE_test: 14.644268845954691
+MAE_test: 11.097893360066815
+[2024-08-01 15:20:25,526] Iteration time: 12.04 seconds
+
+[2024-08-01 15:20:25,673] kernel_learned: 0.543**2 * Matern(length_scale=0.186, nu=1.5) + WhiteKernel(noise_level=0.796)
+kernel: 1**2 * Matern(length_scale=1, nu=1.5) + WhiteKernel(noise_level=1e-05)
+scaler: QuantileTransformer(n_quantiles=92, random_state=0)
+features: ['pot Evap']
+log marginal likelihood (LML): -125.70939696700631
+R2_test: -0.1670154782110329
+RMSE_test: 14.648618539039013
+MAE_test: 11.089013335332886
+[2024-08-01 15:20:25,674] Iteration time: 13.03 seconds
+
+[2024-08-01 15:20:25,958] kernel_learned: 3.16**2 * Matern(length_scale=0.001, nu=1.5)
+kernel: 1**2 * Matern(length_scale=1, nu=1.5)
+scaler: QuantileTransformer(n_quantiles=92, random_state=0)
+features: ['pot Evap']
+log marginal likelihood (LML): -61770828609.791504
+R2_test: -0.24687193337817903
+RMSE_test: 15.141513438577181
+MAE_test: 11.023168371863477
+[2024-08-01 15:20:25,960] Iteration time: 11.81 seconds
+
+[2024-08-01 15:20:26,113] kernel_learned: 3.16**2 * Matern(length_scale=0.001, nu=inf)
+kernel: 1**2 * Matern(length_scale=1, nu=inf)
+scaler: QuantileTransformer(n_quantiles=92, random_state=0)
+features: ['pot Evap']
+log marginal likelihood (LML): -61770831643.364685
+R2_test: -0.25627748721168686
+RMSE_test: 15.198514785295762
+MAE_test: 11.179572747565624
+[2024-08-01 15:20:26,114] Iteration time: 9.64 seconds
+
+[2024-08-01 15:20:26,415] kernel_learned: 3.16**2 * Matern(length_scale=0.001, nu=2.5)
+kernel: 1**2 * Matern(length_scale=1, nu=2.5)
+scaler: QuantileTransformer(n_quantiles=92, random_state=0)
+features: ['pot Evap']
+log marginal likelihood (LML): -61771067761.06088
+R2_test: -0.2498073164325343
+RMSE_test: 15.15932601931244
+MAE_test: 11.071619367451671
+[2024-08-01 15:20:26,416] Iteration time: 12.12 seconds
+
+[2024-08-01 15:20:26,592] 
+Total number of iterations: 16
+[2024-08-01 15:20:26,592] Best iteration: 3
+[2024-08-01 15:20:26,593] Best R2 score: -0.06707146523974172
+[2024-08-01 15:20:26,593] kernel_learned: 0.785**2 * Matern(length_scale=0.946, nu=inf) + WhiteKernel(noise_level=0.801)
+kernel: 1**2 * Matern(length_scale=1, nu=inf) + WhiteKernel(noise_level=1e-05)
+scaler: StandardScaler()
+features: ['pot Evap']
+log marginal likelihood (LML): -125.4479039004485
+R2_test: -0.06707146523974172
+RMSE_test: 14.007322085634389
+MAE_test: 10.654011292429576
+[2024-08-01 15:20:30,952] 
+Running time: 
+59.601 seconds / 0:00:59.600509
+[2024-08-01 15:20:46,443] Writing output to ../output_data/gpr_workspace_of_['pot Evap']_w_outliers_in_WV14.pkl

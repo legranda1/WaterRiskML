@@ -486,11 +486,11 @@ if __name__ == "__main__":
     DIR_PAIRPLOTS = "../plots/pp/"
 
     # Flags
-    SHOW_BOXPLOTS = True
-    SHOW_TIMESERIES = True
-    SHOW_CORR = True
+    SHOW_BOXPLOTS = False
+    SHOW_TIMESERIES = False
+    SHOW_CORR = False
     SHOW_SEL_FEATS = True
-    SAVE_PLOT = True
+    SAVE_PLOT = False
 
     try:
         # Instantiate an object of the DataManager class

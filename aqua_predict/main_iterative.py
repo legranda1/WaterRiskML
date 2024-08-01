@@ -34,7 +34,20 @@ FNAME = FNAMES[0]
 CODE_NAME = re.search(r"WV\d+", FNAME).group(0) \
     if re.search(r"WV\d+", FNAME) else None
 
-SEL_FEATS = ["pot Evap"]
+SEL_FEATS = [
+    "NS Monat",  # Monthly precipitation
+    "T Monat Mittel",  # Average temperature of the month
+    "T Max Monat",  # Maximum temperature of the month
+    "pot Evap",  # Potential evaporation
+    "klimat. WB",  # Climatic water balance
+    "pos. klimat. WB",  # Positive climatic water balance
+    "Heiße Tage",  # Number of hot days (peak temp. greater than
+    # or equal to 30 °C)
+    "Sommertage",  # Number of summer days (peak temp. greater
+    # than or equal to 25 °C)
+    "Eistage",  # Number of ice days
+    "T Min Monat"  # Minimum temperature of the month
+]
 # SEL_FEATS = selected_features(
 #    data, COL_TAR, COL_FEAT, prioritize_feature="T Monat Mittel"
 # )
@@ -48,8 +61,9 @@ SAVE_PLOTS = True
 SAVE_WORKSPACE = True
 
 # Directories to create
-DIR_PLOTS = "../plots/gpr"
-DIR_OUT_DATA = "../output_data"
+DIR_PLOTS = "../plots/gpr/all_features"
+DIR_OUT_DATA = "../output_data/all_features"
+DIR_LOG_ACTIONS = "../log_actions/all_features"
 
 # System Configuration: CPU Allocation and Data Chunking
 # Number of CPU cores used, impacting the speed and efficiency
@@ -101,7 +115,8 @@ def fit_and_test(iter_params):
     :return: The parameter object with updated performance metrics
     """
 
-    start_logging(nick_name=NICK_NAME,
+    start_logging(dir=DIR_LOG_ACTIONS,
+                  nick_name=NICK_NAME,
                   code_name=CODE_NAME)
     try:
         # Unpack the tuple
@@ -174,14 +189,14 @@ def main():
 
     # Load and filter the data
     if OUTLIERS:
-        data = DataManager(xlsx_file_name=f"{FNAME}.xlsx").filter_data()
+        data = DataManager(xlsx_file_name=f"{FNAME}").filter_data()
     elif not OUTLIERS:
         data = DataManager(
-            xlsx_file_name=f"{FNAME}.xlsx"
+            xlsx_file_name=f"{FNAME}"
         ).iterative_cleaning(COL_ALL)
     else:
         data = DataManager(
-            xlsx_file_name=f"{FNAME}.xlsx"
+            xlsx_file_name=f"{FNAME}"
         ).iterative_cleaning("Gesamt/Kopf")
 
     wv_code_number = str(int(data["WVU Nr. "].iloc[0]))
