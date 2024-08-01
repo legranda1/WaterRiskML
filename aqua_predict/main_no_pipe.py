@@ -10,9 +10,7 @@ from sklearn.metrics import root_mean_squared_error, mean_absolute_error
 
 if __name__ == "__main__":
     # Choose the file name of the Excel data you want to work with
-    FNAME = "Auswertung WV14 Unteres Elsenztal.xlsx"
-    # FNAME = "Auswertung WV25 SW Füssen.xlsx"
-    # FNAME = "Auswertung WV69 SW Landshut.xlsx"
+    FNAME = FNAMES[0]
 
     # Load and filter the data
     data = DataManager(xlsx_file_name=FNAME).filter_data()

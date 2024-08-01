@@ -34,26 +34,9 @@ FNAME = FNAMES[0]
 CODE_NAME = re.search(r"WV\d+", FNAME).group(0) \
     if re.search(r"WV\d+", FNAME) else None
 
-SEL_FEATS = [
-    "NS Monat",  # Monthly precipitation
-    "T Monat Mittel",  # Average temperature of the month
-    "T Max Monat",  # Maximum temperature of the month
-    "pot Evap",  # Potential evaporation
-    "klimat. WB",  # Climatic water balance
-    "pos. klimat. WB",  # Positive climatic water balance
-    "Heiße Tage",  # Number of hot days (peak temp. greater than
-    # or equal to 30 °C)
-    "Sommertage",  # Number of summer days (peak temp. greater
-    # than or equal to 25 °C)
-    "Eistage",  # Number of ice days
-    "T Min Monat"  # Minimum temperature of the month
-]
-# SEL_FEATS = selected_features(
-#    data, COL_TAR, COL_FEAT, prioritize_feature="T Monat Mittel"
-# )
-
 # Flags
-OUTLIERS = True  # Comment to try just wo outliers in the target
+# Put anything except True or False to have the target wo outliers
+OUTLIERS = True
 BEST_R2 = True
 BEST_LML = False
 SHOW_PLOTS = True
@@ -61,9 +44,9 @@ SAVE_PLOTS = True
 SAVE_WORKSPACE = True
 
 # Directories to create
-DIR_PLOTS = "../plots/gpr/all_features"
-DIR_OUT_DATA = "../output_data/all_features"
-DIR_LOG_ACTIONS = "../log_actions/all_features"
+DIR_PLOTS = "../plots/gpr/tesing_folder"
+DIR_OUT_DATA = "../output_data/testing_folder"
+DIR_LOG_ACTIONS = "../log_actions/testing_folder"
 
 # System Configuration: CPU Allocation and Data Chunking
 # Number of CPU cores used, impacting the speed and efficiency
@@ -74,12 +57,21 @@ NUMBER_CPUS = 8
 CHUNK_SIZE = None
 # CHUNK_SIZE = 100
 
-if OUTLIERS:
+# Load and filter the data
+if OUTLIERS is True:
     NICK_NAME = "w_outliers"
-elif not OUTLIERS:
+    data = DataManager(xlsx_file_name=FNAME).filter_data()
+elif OUTLIERS is False:
     NICK_NAME = "wo_outliers"
+    data = DataManager(xlsx_file_name=FNAME).iterative_cleaning(COL_ALL)
 else:
     NICK_NAME = "tar_wo_outliers"
+    data = DataManager(xlsx_file_name=FNAME).iterative_cleaning("Gesamt/Kopf")
+
+SEL_FEATS = ["T Monat Mittel"]
+# SEL_FEATS = selected_features(
+#    data, COL_TAR, COL_FEAT, prioritize_feature="T Monat Mittel"
+#)
 
 
 def col_combos(cols, min_len=1):
@@ -186,21 +178,6 @@ def main():
     """
     # Record the initial time for tracking script duration
     init_time = time.time()
-
-    # Load and filter the data
-    if OUTLIERS:
-        data = DataManager(xlsx_file_name=f"{FNAME}").filter_data()
-    elif not OUTLIERS:
-        data = DataManager(
-            xlsx_file_name=f"{FNAME}"
-        ).iterative_cleaning(COL_ALL)
-    else:
-        data = DataManager(
-            xlsx_file_name=f"{FNAME}"
-        ).iterative_cleaning("Gesamt/Kopf")
-
-    wv_code_number = str(int(data["WVU Nr. "].iloc[0]))
-    wv_code_label = f"WV{wv_code_number}"
 
     # Extraction of all input and output data
     x_all = np.array(data[SEL_FEATS])
@@ -382,7 +359,7 @@ def main():
         if SAVE_PLOTS:
             create_directory(DIR_PLOTS)
             path = (f"{DIR_PLOTS}/best_gpr_of_{best_feats}_{NICK_NAME}_"
-                    f"found_in_{wv_code_label}.png")
+                    f"found_in_{CODE_NAME}.png")
             plotter.plot(y_train, y_test, y_mean,
                          y_cov, r2=r2_test, file_name=path)
 
@@ -398,7 +375,7 @@ def main():
         create_directory(DIR_OUT_DATA)
         # .pkl for Pickle files
         path = (f"{DIR_OUT_DATA}/gpr_workspace_of_{best_feats}_{NICK_NAME}"
-                f"_in_{wv_code_label}.pkl")
+                f"_in_{CODE_NAME}.pkl")
         info_logger.info(f"Writing output to {path}")
         # Open the file for writing in binary mode
         with open(path, "wb") as out_file:

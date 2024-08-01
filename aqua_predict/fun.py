@@ -19,6 +19,91 @@ def split_data(data, split_ratio=0.7):
     return train_data, test_data
 
 
+def is_highly_correlated(feature, selected_feats,
+                         corr_matrix):
+    """
+    Checks if a given feature is highly correlated with any of the
+    already selected features
+    :param feature: STR with the name of the feature to be checked for
+    high correlation
+    :param selected_feats: LIST of strings containing the already
+    selected features
+    :param corr_matrix: PD.DATAFRAME containing correlation
+    coefficients between features
+    :return: BOOL which returns True if the feature is highly
+    correlated with any of the selected features, otherwise False
+    """
+    # Iterate over each selected feature
+    for selected_feature in selected_feats:
+        # Check if the absolute correlation between the current feature
+        # and any selected feature exceeds the threshold
+        if abs(corr_matrix.loc[feature, selected_feature]) > 0.7:
+            return True
+    return False
+
+
+def is_lowly_correlated(feature, selected_feats, corr_matrix):
+    """
+    Checks if a given feature is lowly correlated with any of the
+    already selected features
+    :param feature: STR with the name of the feature to be checked for
+    low correlation
+    :param selected_feats: LIST of strings containing the already
+    selected features
+    :param corr_matrix: PD.DATAFRAME containing correlation coefficients
+    between features
+    :return: BOOL which returns True if the feature is lowly correlated
+    with all selected features, otherwise False
+    """
+    # If no features are selected yet, consider the feature as not
+    # correlated
+    if not selected_feats:
+        return True
+
+    # Iterate over each selected feature
+    for selected_feature in selected_feats:
+        # Check if the absolute correlation between the current feature and any selected feature
+        # is non-zero (i.e., there is some correlation, even if small)
+        if abs(corr_matrix.loc[feature, selected_feature]) > 0.3:
+            return False
+    return True
+
+
+def selected_features(data, feat1=None, feat2=None, prioritize_feature=None):
+    """
+    Selects features based on their correlation with a target feature
+    and ensures a specific feature is always listed first.
+    :param data: PD.DATAFRAME with the dataset to plot
+    :param feat1: STR of the target variable (output)
+    :param feat2: LIST of strings of feature names (inputs)
+    :param threshold: FLOAT above which two features are considered
+    highly correlated
+    :param prioritize_feature: STR with the feature to prioritize
+    :return: LIST of strings with the selected_features
+    """
+    # Compute the correlation matrix
+    corr_matrix = data[[feat1] + feat2].corr()
+    # Sort features by their correlation with the target feature
+    target_corr = corr_matrix[feat1].drop(feat1).abs().sort_values(ascending=False)
+
+    # Initialize the list of selected features
+    selected_feats = []
+    # Add the prioritized feature if it's in the list
+    if prioritize_feature and prioritize_feature in target_corr.index:
+        selected_feats.append(prioritize_feature)
+        # Remove the prioritized feature from the target_corr index to avoid re-adding
+        target_corr = target_corr.drop(prioritize_feature)
+
+    # Iterate through the sorted features
+    for feature in target_corr.index:
+        # If the feature is not highly correlated with any of the
+        # selected features
+        if is_lowly_correlated(feature, selected_feats, corr_matrix):
+            selected_feats.append(feature)
+
+    return selected_feats
+
+
 def create_directory(directory):
     """
     Create a directory if it does not already exist
