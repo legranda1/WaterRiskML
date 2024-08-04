@@ -43,9 +43,9 @@ SAVE_PLOTS = True
 SAVE_WORKSPACE = True
 
 # Directories to create
-DIR_PLOTS = "../plots/gpr/without_combinations/every_feat"
-DIR_OUT_DATA = "../output_data/without_combinations/every_feat"
-DIR_LOG_ACTIONS = "../log_actions/without_combinations/every_feat"
+DIR_PLOTS = "../plots/gpr/without_combinations/selected_feats_maxc"
+DIR_OUT_DATA = "../output_data/without_combinations/selected_feats_maxc"
+DIR_LOG_ACTIONS = "../log_actions/without_combinations/selected_feats_maxc"
 
 # System Configuration: CPU Allocation and Data Chunking
 # Number of CPU cores used, impacting the speed and efficiency
@@ -67,9 +67,7 @@ else:
     NICK_NAME = "tar_wo_outliers"
     data = DataManager(xlsx_file_name=FNAME).iterative_cleaning("Gesamt/Kopf")
 
-#SEL_FEATS = [
-#    "T Min Monat",         # Monthly precipitation
-#]
+# SEL_FEATS = ["T Min Monat"]
 # SEL_FEATS = selected_features(
 #    data, COL_TAR, COL_FEAT, prioritize_feature="T Monat Mittel"
 #)

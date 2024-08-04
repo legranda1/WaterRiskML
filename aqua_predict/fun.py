@@ -98,7 +98,7 @@ def selected_features(data, feat1=None, feat2=None, prioritize_feature=None):
     for feature in target_corr.index:
         # If the feature is not highly correlated with any of the
         # selected features
-        if is_lowly_correlated(feature, selected_feats, corr_matrix):
+        if not is_highly_correlated(feature, selected_feats, corr_matrix):
             selected_feats.append(feature)
 
     return selected_feats
