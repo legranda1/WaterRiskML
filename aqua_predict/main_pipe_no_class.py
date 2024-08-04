@@ -13,8 +13,8 @@ if __name__ == "__main__":
     # Flags
     # Put anything except True or False to have the target wo outliers
     OUTLIERS = True
-    SHOW_PLOTS = False
-    SAVE_PLOTS = True
+    SHOW_PLOTS = True
+    SAVE_PLOTS = False
 
     # Directories to create
     DIR_PLOTS = "../plots/gpr/testing_folder"
@@ -75,9 +75,7 @@ if __name__ == "__main__":
                                           normalize_y=True,
                                           alpha=1e-10)
 
-            scaler = preprocessing.QuantileTransformer(
-                n_quantiles=92, random_state=0
-            )
+            scaler = preprocessing.StandardScaler()
             pipe = Pipeline([("scaler", scaler), ("gp", gp)])
             pipe.fit(x_train, y_train)
             print(f"initial kernel: {pipe[1].kernel}")

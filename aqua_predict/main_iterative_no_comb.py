@@ -38,9 +38,9 @@ CODE_NAME = re.search(r"WV\d+", FNAME).group(0) \
 OUTLIERS = True
 BEST_R2 = True
 BEST_LML = False
-SHOW_PLOTS = False
-SAVE_PLOTS = True
-SAVE_WORKSPACE = True
+SHOW_PLOTS = True
+SAVE_PLOTS = False
+SAVE_WORKSPACE = False
 
 # Directories to create
 DIR_PLOTS = "../plots/gpr/without_combinations/selected_feats_maxc"
@@ -67,7 +67,7 @@ else:
     NICK_NAME = "tar_wo_outliers"
     data = DataManager(xlsx_file_name=FNAME).iterative_cleaning("Gesamt/Kopf")
 
-# SEL_FEATS = ["T Min Monat"]
+# SEL_FEATS = ["NS Monat"]
 # SEL_FEATS = selected_features(
 #    data, COL_TAR, COL_FEAT, prioritize_feature="T Monat Mittel"
 #)
