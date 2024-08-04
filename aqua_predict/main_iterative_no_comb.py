@@ -20,7 +20,6 @@ from gpr import GPR
 from sklearn import preprocessing
 # Importing combinations from itertools for generating
 # combinations of elements
-from itertools import combinations
 from sklearn.gaussian_process import GaussianProcessRegressor
 from sklearn.gaussian_process.kernels import (ConstantKernel, Matern,
                                               WhiteKernel)
@@ -39,14 +38,14 @@ CODE_NAME = re.search(r"WV\d+", FNAME).group(0) \
 OUTLIERS = True
 BEST_R2 = True
 BEST_LML = False
-SHOW_PLOTS = True
+SHOW_PLOTS = False
 SAVE_PLOTS = True
 SAVE_WORKSPACE = True
 
 # Directories to create
-DIR_PLOTS = "../plots/gpr/tesing_folder"
-DIR_OUT_DATA = "../output_data/testing_folder"
-DIR_LOG_ACTIONS = "../log_actions/testing_folder"
+DIR_PLOTS = "../plots/gpr/without_combinations/every_feat"
+DIR_OUT_DATA = "../output_data/without_combinations/every_feat"
+DIR_LOG_ACTIONS = "../log_actions/without_combinations/every_feat"
 
 # System Configuration: CPU Allocation and Data Chunking
 # Number of CPU cores used, impacting the speed and efficiency
@@ -68,33 +67,12 @@ else:
     NICK_NAME = "tar_wo_outliers"
     data = DataManager(xlsx_file_name=FNAME).iterative_cleaning("Gesamt/Kopf")
 
-SEL_FEATS = ["T Monat Mittel"]
+#SEL_FEATS = [
+#    "T Min Monat",         # Monthly precipitation
+#]
 # SEL_FEATS = selected_features(
 #    data, COL_TAR, COL_FEAT, prioritize_feature="T Monat Mittel"
 #)
-
-
-def col_combos(cols, min_len=1):
-    """
-    Generate combinations of input columns with varying lengths.
-    :param cols: LIST of input column indices
-    :param min_len: INT representing the minimum number of columns
-    to combine (Default is 1)
-    :return: A LIST of numpy arrays, each containing a combination
-    of column indices
-    """
-    # Determine the maximum number of columns that can be combined
-    max_len = len(cols)
-    # Initialize an empty list to hold the combinations of columns
-    col_feats = []
-    # Generate combinations for each length from min_len to max_len
-    for n in range(min_len, max_len + 1):
-        # Generate combinations of the current length and convert them
-        # to numpy arrays of type int8
-        for combo in combinations(cols, n):
-            col_feats.append(np.array(combo, dtype=np.int8))
-    # Return the list of column combinations
-    return col_feats
 
 
 def fit_and_test(iter_params):
@@ -191,11 +169,6 @@ def main():
     x_train, x_test = split_data(x_all, 0.7)
     y_train, y_test = split_data(y_all, 0.7)
 
-    number_cols = len(SEL_FEATS)  # Number of feature columns
-    indexes_cols = np.arange(number_cols)  # Array of column indices
-    # Generate combinations of input columns with varying lengths.
-    comb_feats = col_combos(indexes_cols)
-
     # List of the most popular scalers for preprocessing
     pop_scalers = [preprocessing.StandardScaler(),
                    preprocessing.QuantileTransformer(
@@ -222,36 +195,32 @@ def main():
     all_par_sets = []
     # Initialize the iteration counter
     counter = 0
-    # Iterate over each combination of feature columns
-    for comb_feat in comb_feats:
-        selected_features = np.array(SEL_FEATS)[comb_feat]
-        x_selected = x_all[:, comb_feat]
-        # Iterate over each scaler within the scalers list
-        for scaler in scalers:
-            # Iterate over the noise switch (Yes/No)
-            for noise in noise_s:
-                for nu in nu_s:  # Iterate over each nu value
-                    if noise == "Yes":  # If noise is to be added
-                        kernel = (ConstantKernel(constant_value=1.0,
-                                                 constant_value_bounds=(0.1, 10.0))
-                                  * Matern(nu=nu, length_scale=1.0,
-                                           length_scale_bounds=(1e-3, 1e3))
-                                  + WhiteKernel(noise_level=1e-5,
-                                                noise_level_bounds=(1e-10, 1e1)))
-                    else:  # If noise is not to be added
-                        kernel = (ConstantKernel(constant_value=1.0,
-                                                 constant_value_bounds=(0.1, 10.0))
-                                  * Matern(nu=nu, length_scale=1.0,
-                                           length_scale_bounds=(1e-3, 1e3)))
+    # Iterate over each scaler within the scalers list
+    for scaler in scalers:
+        # Iterate over the noise switch (Yes/No)
+        for noise in noise_s:
+            for nu in nu_s:  # Iterate over each nu value
+                if noise == "Yes":  # If noise is to be added
+                    kernel = (ConstantKernel(constant_value=1.0,
+                                             constant_value_bounds=(0.1, 10.0))
+                              * Matern(nu=nu, length_scale=1.0,
+                                       length_scale_bounds=(1e-3, 1e3))
+                              + WhiteKernel(noise_level=1e-5,
+                                            noise_level_bounds=(1e-10, 1e1)))
+                else:  # If noise is not to be added
+                    kernel = (ConstantKernel(constant_value=1.0,
+                                             constant_value_bounds=(0.1, 10.0))
+                              * Matern(nu=nu, length_scale=1.0,
+                                       length_scale_bounds=(1e-3, 1e3)))
 
-                    all_par_sets.append((GPR(kernel=kernel, scaler=scaler,
-                                             feats=selected_features,
-                                             idx=counter),
-                                         x_selected,
-                                         y_all, x_indexes_train,
-                                         x_indexes_test))
+                all_par_sets.append((GPR(kernel=kernel, scaler=scaler,
+                                         feats=SEL_FEATS,
+                                         idx=counter),
+                                     x_all,
+                                     y_all, x_indexes_train,
+                                     x_indexes_test))
 
-                    counter += 1
+                counter += 1
 
     results_iter = all_par_sets
 
