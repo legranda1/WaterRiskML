@@ -44,7 +44,7 @@ SAVE_PLOTS = True
 SAVE_WORKSPACE = True
 
 # Directories to create
-DIR_PLOTS = "../plots/gpr/tesing_folder"
+DIR_PLOTS = "../plots/gpr/testing_folder"
 DIR_OUT_DATA = "../output_data/testing_folder"
 DIR_LOG_ACTIONS = "../log_actions/testing_folder"
 
