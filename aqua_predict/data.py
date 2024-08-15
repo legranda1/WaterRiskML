@@ -3,7 +3,7 @@ import pandas as pd
 import numpy as np
 import time
 import datetime
-from plot import PlotBp, PlotCorr, PlotTS
+from plot import PlotBp, PlotCorr, PlotTS, PlotSP
 from config import *
 from fun import *
 
@@ -119,6 +119,27 @@ def plot_boxplot(feats, units, data, file_name, path=None):
         return boxplot.plot(feats, units)
 
 
+def plot_scatterplot(data, feat, target, file_name=None, path=None):
+    """
+    Plots a scatter plot according to the given data
+    :param data: PD.DATAFRAME with the dataset to plot
+    :param feat: STR of the feature variable (input)
+    :param target: STR of the target variable (output)
+    :param file_name: STR with the code name of the file
+    :param path: STR with the name of the path to save the plot
+    :return: A scatter plot
+    """
+    x_scatter = data[feat]
+    y_scatter = data[target]
+    scatterplot = PlotSP(data, title=f"Scatter Plot of {file_name}",
+                         xlabel=feat, ylabel=target,
+                         fig_size=(10, 6), dpi=150)
+    if path:
+        scatterplot.plot(x_scatter, y_scatter, path)
+    else:
+        scatterplot.plot(x_scatter, y_scatter)
+
+
 def plot_heatmap(data, feat1=None, feat2=None, file_name=None, path=None):
     """
     Plots a correlation coefficient heatmap for the
@@ -158,18 +179,22 @@ def plot_pairplot(data, feat1=None, feat2=None, file_name=None, path=None):
         return pp.plot_pp()
 
 
-def process_data(data, wv_label, suffix, show_boxplots, show_timeseries,
-                 show_corr, show_sel_feats, save_plot):
+def process_data(data, x, y, wv_label, suffix, show_boxplots, show_scatterplots,
+                 show_timeseries, show_corr, show_sel_feats, save_plot):
     """
     Processes the given data by generating and optionally saving
     various plots based on provided flags
+    :param x: STR with the x variable name for the scatter plot
+    :param y: STR with the y variable name for the scatter plot
     :param data: PD.DATAFRAME containing the data to plot and analyze
-    :param wv_label: STR indicating the code name of the water supply
+    :param wv_label: STR indicating the dataset code name of the water supply
     company
     :param suffix: STR for differentiating if the data contains
     outliers or not
     :param show_boxplots: BOOL indicating whether to display
     the boxplots
+    :param show_scatterplots: BOOL indicating whether to display
+    the scatterplots
     :param show_timeseries: BOOL indicating whether to display the
     timeseries plots
     :param show_corr: BOOL indicating whether to display the heatmaps
@@ -186,24 +211,31 @@ def process_data(data, wv_label, suffix, show_boxplots, show_timeseries,
         plot_boxplot(FEAT[0], FEAT[1], data, wv_label)
         if save_plot:
             create_directory(DIR_BOXPLOTS)
-            path = f"{DIR_BOXPLOTS}/bp_{suffix}_in_{wv_label}.png"
+            path = f"{DIR_BOXPLOTS}bp_{suffix}_in_{wv_label}.png"
             plot_boxplot(FEAT[0], FEAT[1], data, wv_label, path)
+    if show_scatterplots:
+        plot_scatterplot(data, x, y, wv_label)
+        if save_plot:
+            create_directory(DIR_SCATTERPLOTS)
+            path = (f"{DIR_SCATTERPLOTS}sp_of_{x}_and"
+                    f"_{y.replace('/', '')}_{suffix}_in_{wv_label}.png")
+            plot_scatterplot(data, x, y, wv_label, path)
     if show_timeseries:
         plot_timeseries(data, FEAT[0], wv_label)
         if save_plot:
             create_directory(DIR_TIMESERIES)
-            path = f"{DIR_TIMESERIES}/ts_{suffix}_in_{wv_label}.png"
+            path = f"{DIR_TIMESERIES}ts_{suffix}_in_{wv_label}.png"
             plot_timeseries(data, FEAT[0], wv_label, path)
     if show_corr:
         plot_heatmap(data, COL_TAR, COL_FEAT, wv_label)
         if save_plot:
             create_directory(DIR_HEATMAPS)
-            path = f"{DIR_HEATMAPS}/hm_{suffix}_in_{wv_label}.png"
+            path = f"{DIR_HEATMAPS}hm_{suffix}_in_{wv_label}.png"
             plot_heatmap(data, COL_TAR, COL_FEAT, wv_label, path)
         plot_pairplot(data, COL_TAR, COL_FEAT, wv_label)
         if save_plot:
             create_directory(DIR_PAIRPLOTS)
-            path = f"{DIR_PAIRPLOTS}/pp_{suffix}_in_{wv_label}.png"
+            path = f"{DIR_PAIRPLOTS}pp_{suffix}_in_{wv_label}.png"
             plot_pairplot(data, COL_TAR, COL_FEAT, wv_label, path)
     if show_sel_feats:
         final_features = selected_features(
@@ -395,17 +427,23 @@ if __name__ == "__main__":
     FEAT = [COL_ALL, UNIT_ALL]
 
     # Directories to create
-    DIR_BOXPLOTS = "../plots/bp/"
+    DIR_BOXPLOTS = "../plots/bp"
+    DIR_SCATTERPLOTS = "../plots/sp/"
     DIR_TIMESERIES = "../plots/ts/"
     DIR_HEATMAPS = "../plots/hm/"
     DIR_PAIRPLOTS = "../plots/pp/"
 
     # Flags
     SHOW_BOXPLOTS = False
+    SHOW_SCATTERPLOTS = True
     SHOW_TIMESERIES = False
     SHOW_CORR = False
-    SHOW_SEL_FEATS = True
-    SAVE_PLOT = False
+    SHOW_SEL_FEATS = False
+    SAVE_PLOT = True
+
+    # For scatter plots
+    x = "T Monat Mittel"
+    y = "Gesamt/Kopf"
 
     try:
         # Instantiate an object of the DataManager class
@@ -419,14 +457,20 @@ if __name__ == "__main__":
         cleaned_data = data_handler.iterative_cleaning(FEAT[0])
 
         # Initial data
-        process_data(initial_data, wv_label, "w_outliers", SHOW_BOXPLOTS,
-                     SHOW_TIMESERIES, SHOW_CORR, SHOW_SEL_FEATS, SAVE_PLOT)
+        process_data(initial_data, x, y, wv_label,
+                     "w_outliers", SHOW_BOXPLOTS,
+                     SHOW_SCATTERPLOTS, SHOW_TIMESERIES, SHOW_CORR,
+                     SHOW_SEL_FEATS, SAVE_PLOT)
         # Target cleaned
-        process_data(cleaned_target, wv_label, "tar_wo_outliers", SHOW_BOXPLOTS,
-                     SHOW_TIMESERIES, SHOW_CORR, SHOW_SEL_FEATS, SAVE_PLOT)
+        process_data(cleaned_target, x, y, wv_label,
+                     "tar_wo_outliers", SHOW_BOXPLOTS,
+                     SHOW_SCATTERPLOTS, SHOW_TIMESERIES, SHOW_CORR,
+                     SHOW_SEL_FEATS, SAVE_PLOT)
         # All data cleaned
-        process_data(cleaned_data, wv_label, "wo_outliers", SHOW_BOXPLOTS,
-                     SHOW_TIMESERIES, SHOW_CORR, SHOW_SEL_FEATS, SAVE_PLOT)
+        process_data(cleaned_data, x, y, wv_label,
+                     "wo_outliers", SHOW_BOXPLOTS,
+                     SHOW_SCATTERPLOTS, SHOW_TIMESERIES, SHOW_CORR,
+                     SHOW_SEL_FEATS, SAVE_PLOT)
 
     except Exception as e:
         print(f"An error occurred: {e}")

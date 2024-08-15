@@ -68,7 +68,7 @@ else:
     NICK_NAME = "tar_wo_outliers"
     data = DataManager(xlsx_file_name=FNAME).iterative_cleaning("Gesamt/Kopf")
 
-SEL_FEATS = ["T Monat Mittel"]
+# SEL_FEATS = ["T Monat Mittel"]
 # SEL_FEATS = selected_features(
 #    data, COL_TAR, COL_FEAT, prioritize_feature="T Monat Mittel"
 #)

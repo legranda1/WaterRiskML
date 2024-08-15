@@ -376,3 +376,55 @@ class PlotTS:
         else:
             plt.tight_layout()
             plt.show()
+
+
+class PlotSP:
+    def __init__(self, df=None, title="Scatter Plot",
+                 xlabel="Variable x", ylabel="Variable x", fig_size=(14, 6), dpi=150):
+        """
+        Initialize the PlotSP class.
+        :param df: PD.DATAFRAME containing the data
+        :param title: STR with the title of the scatter plot
+        :param xlabel: STR with the X-axis label
+        :param ylabel: STR with the Y-axis label
+        :param fig_size: TUPLE with the figure size for the plot
+        """
+        self.df = df
+        self.title = title
+        self.xlabel = xlabel
+        self.ylabel = ylabel
+        self.figure_size = fig_size
+        self.dpi = dpi
+
+    def plot(self, x, y, path=None):
+        """
+        Plots the time series of different features
+        :param x: STR with the name of the x variable
+        :param y: STR with the name of the y variable
+        :param path: STR with the name of the path to save the plot
+        :return: None
+        """
+        plt.figure(figsize=self.figure_size)  # Create a new figure
+        axes = plt.gca()  # Get current axes
+
+        # Set the title and labels
+        axes.set_title(self.title)
+        axes.set_xlabel(self.xlabel)
+        axes.set_ylabel(self.ylabel)
+
+        # Scatter plot
+        axes.scatter(x, y, c="C0", s=15,
+                     zorder=10)
+
+        # Customize the plot
+        axes.grid(True)
+
+        if path:
+            plt.savefig(path, dpi=self.dpi,
+                        bbox_inches="tight", pad_inches=0.25)
+            plt.close()
+        else:
+            plt.tight_layout()
+            plt.show()
+
+
