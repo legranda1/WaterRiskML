@@ -12,6 +12,7 @@ import warnings
 # parallel processing
 from multiprocessing import Pool
 import numpy as np
+import pandas as pd
 from config import *
 from data import DataManager
 from fun import *
@@ -20,7 +21,6 @@ from gpr import GPR
 from sklearn import preprocessing
 # Importing combinations from itertools for generating
 # combinations of elements
-from itertools import combinations
 from sklearn.gaussian_process import GaussianProcessRegressor
 from sklearn.gaussian_process.kernels import (ConstantKernel, Matern,
                                               WhiteKernel)
@@ -36,17 +36,17 @@ CODE_NAME = re.search(r"WV\d+", FNAME).group(0) \
 
 # Flags
 # Put anything except True or False to have the target wo outliers
-OUTLIERS = True
+OUTLIERS = False
 BEST_R2 = True
-BEST_LML = False
 SHOW_PLOTS = True
-SAVE_PLOTS = True
-SAVE_WORKSPACE = True
+SAVE_PLOTS = False
+SAVE_WORKSPACE = False
 
 # Directories to create
-DIR_PLOTS = "../plots/gpr/testing_folder"
-DIR_OUT_DATA = "../output_data/testing_folder"
-DIR_LOG_ACTIONS = "../log_actions/testing_folder"
+DIR_PLOTS = "../plots/gpr/individual_feature_analysis/1_NS_Monat/"
+DIR_GPR_OUT_DATA = "../gpr_output_data/individual_feature_analysis/1_NS_Monat/"
+DIR_LOG_ACTIONS = "../log_actions/without_combinations/selected_feats_maxc"
+DIR_RESULTS = "../results/individual_feature_analysis/1_NS_Monat/"
 
 # System Configuration: CPU Allocation and Data Chunking
 # Number of CPU cores used, impacting the speed and efficiency
@@ -68,33 +68,20 @@ else:
     NICK_NAME = "tar_wo_outliers"
     data = DataManager(xlsx_file_name=FNAME).iterative_cleaning("Gesamt/Kopf")
 
-# SEL_FEATS = ["T Monat Mittel"]
-# SEL_FEATS = selected_features(
-#    data, COL_TAR, COL_FEAT, prioritize_feature="T Monat Mittel"
-#)
-
-
-def col_combos(cols, min_len=1):
-    """
-    Generate combinations of input columns with varying lengths.
-    :param cols: LIST of input column indices
-    :param min_len: INT representing the minimum number of columns
-    to combine (Default is 1)
-    :return: A LIST of numpy arrays, each containing a combination
-    of column indices
-    """
-    # Determine the maximum number of columns that can be combined
-    max_len = len(cols)
-    # Initialize an empty list to hold the combinations of columns
-    col_feats = []
-    # Generate combinations for each length from min_len to max_len
-    for n in range(min_len, max_len + 1):
-        # Generate combinations of the current length and convert them
-        # to numpy arrays of type int8
-        for combo in combinations(cols, n):
-            col_feats.append(np.array(combo, dtype=np.int8))
-    # Return the list of column combinations
-    return col_feats
+SEL_FEATS = [
+#    "NS Monat",         # Monthly precipitation
+    "T Monat Mittel",   # Average temperature of the month
+#    "T Max Monat",      # Maximum temperature of the month
+#    "pot Evap",         # Potential evaporation
+#    "klimat. WB",       # Climatic water balance
+#    "pos. klimat. WB",  # Positive climatic water balance
+#    "Heiße Tage",       # Number of hot days (peak temp. greater than
+                        # or equal to 30 °C)
+#    "Sommertage",       # Number of summer days (peak temp. greater
+                        # than or equal to 25 °C)
+#    "Eistage",          # Number of ice days
+ #   "T Min Monat"       # Minimum temperature of the month
+]
 
 
 def fit_and_test(iter_params):
@@ -108,7 +95,7 @@ def fit_and_test(iter_params):
     """
 
     start_logging(dir=DIR_LOG_ACTIONS,
-                  nick_name=NICK_NAME,
+                  nick_name=f"of_{SEL_FEATS}_{NICK_NAME}_wo_noise",
                   code_name=CODE_NAME)
     try:
         # Unpack the tuple
@@ -171,7 +158,7 @@ def fit_and_test(iter_params):
 
 
 @logging_decorator(dir=DIR_LOG_ACTIONS,
-                   nick_name=NICK_NAME,
+                   nick_name=f"of_{SEL_FEATS}_{NICK_NAME}_wo_noise",
                    code_name=CODE_NAME)
 def main():
     """
@@ -193,11 +180,6 @@ def main():
     x_train, x_test = split_data(x_all, 0.7)
     y_train, y_test = split_data(y_all, 0.7)
 
-    number_cols = len(SEL_FEATS)  # Number of feature columns
-    indexes_cols = np.arange(number_cols)  # Array of column indices
-    # Generate combinations of input columns with varying lengths.
-    comb_feats = col_combos(indexes_cols)
-
     # List of the most popular scalers for preprocessing
     pop_scalers = [preprocessing.StandardScaler(),
                    preprocessing.QuantileTransformer(
@@ -213,9 +195,6 @@ def main():
     scalers = [pop_scalers[0]]
     # scalers = pop_scalers
 
-    # List to toggle noise addition
-    noise_s = ["Yes", "No"]
-
     # nu recommended values for the Matern kernel
     # For nu=inf, the kernel becomes equivalent to the RBF kernel
     nu_s = [0.5, 1.5, 2.5, np.inf]
@@ -224,36 +203,21 @@ def main():
     all_par_sets = []
     # Initialize the iteration counter
     counter = 0
-    # Iterate over each combination of feature columns
-    for comb_feat in comb_feats:
-        selected_features = np.array(SEL_FEATS)[comb_feat]
-        x_selected = x_all[:, comb_feat]
-        # Iterate over each scaler within the scalers list
-        for scaler in scalers:
-            # Iterate over the noise switch (Yes/No)
-            for noise in noise_s:
-                for nu in nu_s:  # Iterate over each nu value
-                    if noise == "Yes":  # If noise is to be added
-                        kernel = (ConstantKernel(constant_value=1.0,
-                                                 constant_value_bounds=(0.1, 10.0))
-                                  * Matern(nu=nu, length_scale=1.0,
-                                           length_scale_bounds=(1e-3, 1e3))
-                                  + WhiteKernel(noise_level=1e-5,
-                                                noise_level_bounds=(1e-10, 1e1)))
-                    else:  # If noise is not to be added
-                        kernel = (ConstantKernel(constant_value=1.0,
-                                                 constant_value_bounds=(0.1, 10.0))
-                                  * Matern(nu=nu, length_scale=1.0,
-                                           length_scale_bounds=(1e-3, 1e3)))
+    # Iterate over each scaler within the scalers list
+    for scaler in scalers:
+        for nu in nu_s:  # Iterate over each nu value
+            kernel = (ConstantKernel(constant_value=1.0,
+                                     constant_value_bounds=(0.1, 10.0))
+                      * Matern(nu=nu, length_scale=1.0,
+                               length_scale_bounds=(1e-3, 1e3)))
 
-                    all_par_sets.append((GPR(kernel=kernel, scaler=scaler,
-                                             feats=selected_features,
-                                             idx=counter),
-                                         x_selected,
-                                         y_all, x_indexes_train,
-                                         x_indexes_test))
-
-                    counter += 1
+            all_par_sets.append((GPR(kernel=kernel, scaler=scaler,
+                                     feats=SEL_FEATS,
+                                     idx=counter),
+                                 x_all,
+                                 y_all, x_indexes_train,
+                                 x_indexes_test))
+            counter += 1
 
     results_iter = all_par_sets
 
@@ -269,14 +233,35 @@ def main():
             # Retrieve results from asynchronous processing
             # (i.e., objects of GPRPars())
             all_par_sets_updated = result.get()
-            if BEST_LML:
-                # Extract LML scores from each parameter set
-                lml_scores = np.array([par_set.marg_lh
+            # Extract LML scores from each parameter set
+            lml_scores = np.array([par_set.marg_lh
+                                   for par_set in all_par_sets_updated])
+            # Extract R2 scores from each parameter set
+            r2_test_scores = np.array([par_set.r2_test
                                        for par_set in all_par_sets_updated])
-            if BEST_R2:
-                # Extract R2 scores from each parameter set
-                r2_test_scores = np.array([par_set.r2_test
-                                           for par_set in all_par_sets_updated])
+            # Extract RMSE scores from each parameter set
+            rmse_test_scores = np.array([par_set.rmse_test
+                                         for par_set in all_par_sets_updated])
+            # Extract MAE scores from each parameter set
+            mae_test_scores = np.array([par_set.mae_test
+                                        for par_set in all_par_sets_updated])
+
+            # Create a DataFrame with the results
+            result_df = pd.DataFrame({
+                "lh": lml_scores,
+                "r2": r2_test_scores,
+                "rmse": rmse_test_scores,
+                "mae": mae_test_scores
+            })
+
+            # Round numerical values to 2 decimal places
+            result_df = result_df.round(2)
+
+            # Save DataFrame to a CSV file
+            create_directory(DIR_RESULTS)
+            result_df.to_csv(f"{DIR_RESULTS}/results_of_{SEL_FEATS}_{NICK_NAME}_"
+                             f"wo_noise_in_{CODE_NAME}.csv", index=False)
+
         else:
             # Handle case where GPR approach failed
             warning_logger = logging.getLogger("warning_logger")
@@ -285,8 +270,6 @@ def main():
     # Get the best
     if BEST_R2:
         best_index = r2_test_scores.argmax()  # Find the index of the best R2 score
-    if BEST_LML:
-        best_index = lml_scores.argmax()  # Find the index of the best LML score
     # Get the parameter set corresponding to the best score
     best_par_set = all_par_sets_updated[best_index]
     # Log the total number of iterations
@@ -297,10 +280,6 @@ def main():
     if BEST_R2:
         # Log the best R2 score
         info_logger.info(f"Best R2 score: {r2_test_scores[best_index]}")
-        info_logger.info(best_par_set)  # Log the best parameter set
-    if BEST_LML:
-        # Log the best LML score
-        info_logger.info(f"Best LML score: {lml_scores[best_index]}")
         info_logger.info(best_par_set)  # Log the best parameter set
 
     # Extract and check results by re-computing without pipe
@@ -360,8 +339,8 @@ def main():
             plotter.plot(y_train, y_test, y_mean, y_cov, r2=r2_test)
         if SAVE_PLOTS:
             create_directory(DIR_PLOTS)
-            path = (f"{DIR_PLOTS}/best_gpr_of_{best_feats}_{NICK_NAME}_"
-                    f"found_in_{CODE_NAME}.png")
+            path = (f"{DIR_PLOTS}best_gpr_of_{best_feats}_{NICK_NAME}_"
+                    f"wo_noise_found_in_{CODE_NAME}.png")
             plotter.plot(y_train, y_test, y_mean,
                          y_cov, r2=r2_test, file_name=path)
 
@@ -374,10 +353,10 @@ def main():
                      "x_indexes_train": x_indexes_train,
                      "x_indexes_test": x_indexes_test,
                      "time": total_time}
-        create_directory(DIR_OUT_DATA)
+        create_directory(DIR_GPR_OUT_DATA)
         # .pkl for Pickle files
-        path = (f"{DIR_OUT_DATA}/gpr_workspace_of_{best_feats}_{NICK_NAME}"
-                f"_in_{CODE_NAME}.pkl")
+        path = (f"{DIR_GPR_OUT_DATA}gpr_workspace_of_{best_feats}_{NICK_NAME}"
+                f"wo_noise_in_{CODE_NAME}.pkl")
         info_logger.info(f"Writing output to {path}")
         # Open the file for writing in binary mode
         with open(path, "wb") as out_file:
@@ -388,3 +367,4 @@ def main():
 if __name__ == "__main__":
 
     main()
+

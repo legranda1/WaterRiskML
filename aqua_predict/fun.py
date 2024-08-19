@@ -98,7 +98,7 @@ def selected_features(data, feat1=None, feat2=None, prioritize_feature=None):
     for feature in target_corr.index:
         # If the feature is not highly correlated with any of the
         # selected features
-        if not is_highly_correlated(feature, selected_feats, corr_matrix):
+        if is_lowly_correlated(feature, selected_feats, corr_matrix):
             selected_feats.append(feature)
 
     return selected_feats
@@ -156,21 +156,31 @@ def start_logging(dir="../log_actions", nick_name="w_outliers", code_name="WV14"
         logger.addHandler(stream_handler)
 
 
-def log_actions(fun):
+def logging_decorator(dir="../log_actions", nick_name="w_outliers", code_name="WV14"):
     """
-    'log_actions' decorator
-    :param fun: a function
-    :return: result of applying the wrapper function to the
-    corresponding "fun"
+    A decorator factory that allows setting parameters for logging before wrapping the function.
+    :param dir: SRT with the directory where log files will be stored.
+    :param nick_name: STR indicating whether they contain outliers
+    :param code_name: STR with the file code name.
+    :return: The actual decorator function that applies logging to the wrapped function
     """
-    def wrapper(*args, **kwargs):
+    def log_actions(fun):
         """
-        Wrapper function in order to log script execution messages
-        :param args: optional arguments
-        :param kwargs: optional keyword arguments
-        :return: None
+        'log_actions' decorator
+        :param fun: a function
+        :return: result of applying the wrapper function to the
+        corresponding "fun"
         """
-        start_logging()
-        fun(*args, **kwargs)
-        logging.shutdown()
-    return wrapper
+        def wrapper(*args, **kwargs):
+            """
+            Wrapper function in order to log script execution messages
+            :param args: optional arguments
+            :param kwargs: optional keyword arguments
+            :return: None
+            """
+            start_logging(dir, nick_name, code_name)
+            fun(*args, **kwargs)
+            logging.shutdown()
+        return wrapper
+    return log_actions
+

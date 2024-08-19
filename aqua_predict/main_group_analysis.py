@@ -35,7 +35,7 @@ CODE_NAME = re.search(r"WV\d+", FNAME).group(0) \
 
 # Flags
 # Put anything except True or False to have the target wo outliers
-OUTLIERS = True
+OUTLIERS = False
 BEST_R2 = True
 BEST_LML = False
 SHOW_PLOTS = True
@@ -50,7 +50,7 @@ DIR_LOG_ACTIONS = "../log_actions/without_combinations/selected_feats_maxc"
 # System Configuration: CPU Allocation and Data Chunking
 # Number of CPU cores used, impacting the speed and efficiency
 # of parallel processing.
-NUMBER_CPUS = 8
+NUMBER_CPUS = 1
 # Controls the size of data units processed at a time (per CPU),
 # affecting load balancing and processing efficiency in parallel tasks
 CHUNK_SIZE = None
@@ -67,7 +67,20 @@ else:
     NICK_NAME = "tar_wo_outliers"
     data = DataManager(xlsx_file_name=FNAME).iterative_cleaning("Gesamt/Kopf")
 
-# SEL_FEATS = ["NS Monat"]
+SEL_FEATS = [
+    "NS Monat",         # Monthly precipitation
+    "T Monat Mittel",   # Average temperature of the month
+    "T Max Monat",      # Maximum temperature of the month
+    "pot Evap",         # Potential evaporation
+    "klimat. WB",       # Climatic water balance
+    "pos. klimat. WB",  # Positive climatic water balance
+    "Heiße Tage",       # Number of hot days (peak temp. greater than
+                        # or equal to 30 °C)
+    "Sommertage",       # Number of summer days (peak temp. greater
+                        # than or equal to 25 °C)
+    "Eistage",          # Number of ice days
+    "T Min Monat"       # Minimum temperature of the month
+]
 # SEL_FEATS = selected_features(
 #    data, COL_TAR, COL_FEAT, prioritize_feature="T Monat Mittel"
 #)
@@ -82,10 +95,6 @@ def fit_and_test(iter_params):
     testing indices (np.array)
     :return: The parameter object with updated performance metrics
     """
-
-    start_logging(dir=DIR_LOG_ACTIONS,
-                  nick_name=NICK_NAME,
-                  code_name=CODE_NAME)
     try:
         # Unpack the tuple
         cnt_i = iter_params[0].idx  # Iteration counter
@@ -146,7 +155,9 @@ def fit_and_test(iter_params):
         return None
 
 
-@log_actions
+@logging_decorator(dir=DIR_LOG_ACTIONS,
+                   nick_name=NICK_NAME,
+                   code_name=CODE_NAME)
 def main():
     """
     Main functionality of the script
@@ -179,7 +190,7 @@ def main():
                    preprocessing.Normalizer(norm='l1'),
                    preprocessing.Normalizer(norm='l2'),
                    preprocessing.Normalizer(norm='max')]
-    scalers = [pop_scalers[0], pop_scalers[1]]
+    scalers = [pop_scalers[0]]
     # scalers = pop_scalers
 
     # List to toggle noise addition

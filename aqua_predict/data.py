@@ -112,7 +112,7 @@ def plot_boxplot(feats, units, data, file_name, path=None):
     """
     boxplot = PlotBp(data, title=f"Boxplot of {file_name}",
                      ylabel="Ranges", fig_size=(15, 8),
-                     dpi=150)
+                     dpi=250)
     if path:
         return boxplot.plot(feats, units, path)
     else:
@@ -427,7 +427,7 @@ if __name__ == "__main__":
     FEAT = [COL_ALL, UNIT_ALL]
 
     # Directories to create
-    DIR_BOXPLOTS = "../plots/bp"
+    DIR_BOXPLOTS = "../plots/bp/"
     DIR_SCATTERPLOTS = "../plots/sp/"
     DIR_TIMESERIES = "../plots/ts/"
     DIR_HEATMAPS = "../plots/hm/"
@@ -435,11 +435,11 @@ if __name__ == "__main__":
 
     # Flags
     SHOW_BOXPLOTS = False
-    SHOW_SCATTERPLOTS = True
+    SHOW_SCATTERPLOTS = False
     SHOW_TIMESERIES = False
     SHOW_CORR = False
-    SHOW_SEL_FEATS = False
-    SAVE_PLOT = True
+    SHOW_SEL_FEATS = True
+    SAVE_PLOT = False
 
     # For scatter plots
     x = "T Monat Mittel"
