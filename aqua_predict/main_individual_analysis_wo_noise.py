@@ -36,16 +36,16 @@ CODE_NAME = re.search(r"WV\d+", FNAME).group(0) \
 
 # Flags
 # Put anything except True or False to have the target wo outliers
-OUTLIERS = False
+OUTLIERS = True
 BEST_R2 = True
 SHOW_PLOTS = True
-SAVE_PLOTS = False
-SAVE_WORKSPACE = False
+SAVE_PLOTS = True
+SAVE_WORKSPACE = True
 
 # Directories to create
 DIR_PLOTS = "../plots/gpr/individual_feature_analysis/1_NS_Monat/"
 DIR_GPR_OUT_DATA = "../gpr_output_data/individual_feature_analysis/1_NS_Monat/"
-DIR_LOG_ACTIONS = "../log_actions/without_combinations/selected_feats_maxc"
+DIR_LOG_ACTIONS = "../log_actions/individual_feature_analysis/1_NS_Monat/"
 DIR_RESULTS = "../results/individual_feature_analysis/1_NS_Monat/"
 
 # System Configuration: CPU Allocation and Data Chunking
@@ -69,8 +69,8 @@ else:
     data = DataManager(xlsx_file_name=FNAME).iterative_cleaning("Gesamt/Kopf")
 
 SEL_FEATS = [
-#    "NS Monat",         # Monthly precipitation
-    "T Monat Mittel",   # Average temperature of the month
+    "NS Monat",         # Monthly precipitation
+#    "T Monat Mittel",   # Average temperature of the month
 #    "T Max Monat",      # Maximum temperature of the month
 #    "pot Evap",         # Potential evaporation
 #    "klimat. WB",       # Climatic water balance
@@ -80,7 +80,7 @@ SEL_FEATS = [
 #    "Sommertage",       # Number of summer days (peak temp. greater
                         # than or equal to 25 °C)
 #    "Eistage",          # Number of ice days
- #   "T Min Monat"       # Minimum temperature of the month
+#   "T Min Monat"       # Minimum temperature of the month
 ]
 
 
@@ -355,7 +355,7 @@ def main():
                      "time": total_time}
         create_directory(DIR_GPR_OUT_DATA)
         # .pkl for Pickle files
-        path = (f"{DIR_GPR_OUT_DATA}gpr_workspace_of_{best_feats}_{NICK_NAME}"
+        path = (f"{DIR_GPR_OUT_DATA}gpr_workspace_of_{best_feats}_{NICK_NAME}_"
                 f"wo_noise_in_{CODE_NAME}.pkl")
         info_logger.info(f"Writing output to {path}")
         # Open the file for writing in binary mode
