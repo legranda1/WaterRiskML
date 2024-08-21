@@ -44,11 +44,11 @@ def extract_column_from_csvs(csv_paths, column_name, output_csv, output_dir):
     # Save the merged DataFrame to the output CSV file
     final_df.to_csv(os.path.join(output_dir, output_csv), index=False)
 
-outliers = "tar_wo_outliers"
-noise = "wo_noise"
-dataset = "WV69"
+outliers = "w_outliers"
+noise = "w_noise"
+dataset = "WV14"
 columns = ["lh", "r2", "rmse", "mae"]
-column_to_extract = columns[3]
+column_to_extract = columns[0]
 output_file_name = f"final_results_{column_to_extract}_{outliers}_{noise}_in_{dataset}.csv"
 
 # Example usage:
@@ -63,6 +63,7 @@ csv_file_paths = [
     f"../results/individual_feature_analysis/8_Sommertage/results_of_['Sommertage']_{outliers}_{noise}_in_{dataset}.csv",
     f"../results/individual_feature_analysis/9_Eistage/results_of_['Eistage']_{outliers}_{noise}_in_{dataset}.csv",
     f"../results/individual_feature_analysis/10_T_Min_Monat/results_of_['T Min Monat']_{outliers}_{noise}_in_{dataset}.csv",
+    f"../results/group_feature_analysis/all_feats/results_of_all_feats_{outliers}_{noise}_in_{dataset}.csv",
 ]
 
 DIR_FINAL_RESULTS = f"../final_results/individual_feature_analysis/{column_to_extract}/"

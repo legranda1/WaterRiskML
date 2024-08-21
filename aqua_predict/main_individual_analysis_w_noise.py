@@ -351,7 +351,7 @@ def main():
                      "best_gp": best_gp, "all_features": x_all,
                      "target": y_all, "best_scaler": best_scaler,
                      "all_par_sets_updated": all_par_sets_updated,
-                     "scores": r2_test_scores if BEST_R2 else lml_scores,
+                     "scores": r2_test_scores,
                      "x_indexes_train": x_indexes_train,
                      "x_indexes_test": x_indexes_test,
                      "time": total_time}

@@ -44,9 +44,10 @@ SAVE_PLOTS = True
 SAVE_WORKSPACE = True
 
 # Directories to create
-DIR_PLOTS = "../plots/gpr/testing_folder"
-DIR_OUT_DATA = "../output_data/testing_folder"
-DIR_LOG_ACTIONS = "../log_actions/testing_folder"
+DIR_PLOTS = "../plots/gpr/combined_feature_analysis/brute_force_selection/"
+DIR_GRP_OUT_DATA = "../output_data/combined_feature_analysis/brute_force_selection/"
+DIR_LOG_ACTIONS = "../log_actions/combined_feature_analysis/brute_force_selection/"
+DIR_RESULTS = "../results/combined_feature_analysis/brute_force_selection/"
 
 # System Configuration: CPU Allocation and Data Chunking
 # Number of CPU cores used, impacting the speed and efficiency
@@ -374,9 +375,9 @@ def main():
                      "x_indexes_train": x_indexes_train,
                      "x_indexes_test": x_indexes_test,
                      "time": total_time}
-        create_directory(DIR_OUT_DATA)
+        create_directory(DIR_GPR_OUT_DATA)
         # .pkl for Pickle files
-        path = (f"{DIR_OUT_DATA}/gpr_workspace_of_{best_feats}_{NICK_NAME}"
+        path = (f"{DIR_GPR_OUT_DATA}/gpr_workspace_of_{best_feats}_{NICK_NAME}"
                 f"_in_{CODE_NAME}.pkl")
         info_logger.info(f"Writing output to {path}")
         # Open the file for writing in binary mode
