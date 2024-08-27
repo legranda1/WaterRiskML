@@ -16,18 +16,32 @@ if __name__ == "__main__":
     data = DataManager(xlsx_file_name=FNAME).filter_data()
     # data = DataManager(xlsx_file_name=FNAME).iterative_cleaning(COL_ALL)
 
-    # Extraction of all input and output data
+    # Define the full range of years (2010 to 2020 in this case)
+    full_year_range = (2010, 2020)
+
+    # Define the testing year range or individual testing years
+    # Example: testing from 2015 to 2017 or non-contiguous years like [2015, 2017, 2019]
+    test_years = [2015, 2017, 2019]  # Can be a range or specific years
+
+    # Select the testing data based on the given test years
+    test_df = data[data["Jahr"].isin(test_years)]
+
+    # Define the training data by excluding the testing years
+    train_df = data[~data["Jahr"].isin(test_years)]
+
+    # Extract all features and target arrays for training and testing
+    x_train = np.array(train_df[COL_FEAT])
+    y_train = np.array(train_df[COL_TAR])
+
+    x_test = np.array(test_df[COL_FEAT])
+    y_test = np.array(test_df[COL_TAR])
+
+    # Generate index arrays for the x-axis
     x_all = np.array(data[COL_FEAT])
     y_all = np.array(data[COL_TAR])
 
-    # Splitting training and test data
-    x_train, x_test = split_data(x_all, 0.7)
-    y_train, y_test = split_data(y_all, 0.7)
-
     # Scaling all input data, training, and testing data
-    scaler = preprocessing.QuantileTransformer(
-                n_quantiles=92, random_state=0
-            )
+    scaler = preprocessing.StandardScaler()
     x_train_scaled = scaler.fit_transform(x_train)
     x_test_scaled = scaler.transform(x_test)
 
@@ -69,4 +83,4 @@ if __name__ == "__main__":
                       "Monthly per capita water consumption [L/(C*d)]",
                       1.96,
                       fig_size=(12, 6), dpi=200)
-    plotter.plot(y_train, y_test, y_mean, y_cov, r2=r2_test)
+    plotter.plot(y_train, y_test, y_mean, y_cov, r2=r2_test, test_years=test_years)

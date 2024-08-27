@@ -36,11 +36,12 @@ CODE_NAME = re.search(r"WV\d+", FNAME).group(0) \
 
 # Flags
 # Put anything except True or False to have the target wo outliers
-OUTLIERS = True
+YEAR_TEST = True
+OUTLIERS = 1
 BEST_R2 = True
 SHOW_PLOTS = True
-SAVE_PLOTS = True
-SAVE_WORKSPACE = True
+SAVE_PLOTS = False
+SAVE_WORKSPACE = False
 
 # Directories to create
 DIR_PLOTS = "../plots/gpr/group_feature_analysis/all_feats/"
@@ -168,17 +169,62 @@ def main():
     # Record the initial time for tracking script duration
     init_time = time.time()
 
-    # Extraction of all input and output data
-    x_all = np.array(data[SEL_FEATS])
-    y_all = np.array(data[COL_TAR])
+    if YEAR_TEST:
+        # Define the testing year range or individual testing years
+        # Example: testing from 2015 to 2017 or non-contiguous years like [2013, 2017, 2019]
+        test_years = [2015, 2016, 2017]  # Can be a range or specific years
 
-    # Extraction of important data from the x-axis
-    x_indexes = np.arange(x_all.shape[0])  # X-axis indexes
-    x_indexes_train, x_indexes_test = split_data(x_indexes, 0.7)
+        # Select the testing data based on the given test years
+        test_df = data[data["Jahr"].isin(test_years)]
+        print(test_df.shape)
 
-    # Splitting training and test data
-    x_train, x_test = split_data(x_all, 0.7)
-    y_train, y_test = split_data(y_all, 0.7)
+        # Define the training data by excluding the testing years
+        # Define the training data by including years from start_year to end_year
+        train_df = data[~data["Jahr"].isin(test_years)]
+        print(train_df.shape)
+
+        # Extract all features and target arrays for training and testing
+        x_train = np.array(train_df[SEL_FEATS])
+        y_train = np.array(train_df[COL_TAR])
+        print(y_train.shape)
+
+        x_test = np.array(test_df[SEL_FEATS])
+        y_test = np.array(test_df[COL_TAR])
+        print(y_test.shape)
+
+        # Generate index arrays for the x-axis
+        x_all = np.array(data[SEL_FEATS])
+        print(x_all.shape)
+        y_all = np.array(data[COL_TAR])
+        print(y_all.shape)
+
+        # Find the exact positions (indexes) of the training and testing data in the original dataset
+        x_indexes_train = train_df.index.values  # Exact positions of the training years
+        x_indexes_test = test_df.index.values  # Exact positions of the testing years
+        print(x_indexes_train)
+
+        # Generate a full range of indices for x_all (assuming it spans from 0 to len(x_all) - 1)
+        all_indices = np.arange(len(x_all))
+
+        # Get indices for x_train and x_test based on their positions in the original dataset
+        x_indexes_train = np.intersect1d(all_indices, x_indexes_train)
+        x_indexes_test = np.intersect1d(all_indices, x_indexes_test)
+
+        print(x_indexes_train)
+        print(x_indexes_test.shape)
+
+    else:
+        # Extraction of all input and output data
+        x_all = np.array(data[SEL_FEATS])
+        y_all = np.array(data[COL_TAR])
+
+        # Extraction of important data from the x-axis
+        x_indexes = np.arange(x_all.shape[0])  # X-axis indexes
+        x_indexes_train, x_indexes_test = split_data(x_indexes, 0.7)
+
+        # Splitting training and test data
+        x_train, x_test = split_data(x_all, 0.7)
+        y_train, y_test = split_data(y_all, 0.7)
 
     # List of the most popular scalers for preprocessing
     pop_scalers = [preprocessing.StandardScaler(),
@@ -278,7 +324,7 @@ def main():
     info_logger = logging.getLogger("info_logger")
     info_logger.info(f"\nTotal number of iterations: {counter}")
     # Log the index of the best iteration
-    info_logger.info(f"Best iteration: {best_index}")
+    info_logger.info(f"Best iteration: {best_index + 1}")
     if BEST_R2:
         # Log the best R2 score
         info_logger.info(f"Best R2 score: {r2_test_scores[best_index]}")
@@ -338,14 +384,22 @@ def main():
                           1.96,
                           fig_size=(12, 6), dpi=150)
         if SHOW_PLOTS:
-            plotter.plot(y_train, y_test, y_mean, y_cov, r2=r2_test)
+            if YEAR_TEST:
+                plotter.plot(y_train, y_test, y_mean, y_cov, r2=r2_test,
+                             test_years=test_years)
+            else:
+                plotter.plot(y_train, y_test, y_mean, y_cov, r2=r2_test)
         if SAVE_PLOTS:
             create_directory(DIR_PLOTS)
             path = (f"{DIR_PLOTS}best_gpr_of_all_feats_{NICK_NAME}_"
                     f"w_noise_found_in_{CODE_NAME}.png")
-            plotter.plot(y_train, y_test, y_mean,
-                         y_cov, r2=r2_test, file_name=path)
-
+            if YEAR_TEST:
+                plotter.plot(y_train, y_test, y_mean,
+                             y_cov, r2=r2_test, file_name=path,
+                             test_years=test_years)
+            else:
+                plotter.plot(y_train, y_test, y_mean,
+                             y_cov, r2=r2_test, file_name=path)
     if SAVE_WORKSPACE and result.successful():
         workspace = {"best_par_set": best_par_set,
                      "best_gp": best_gp, "all_features": x_all,
@@ -365,8 +419,6 @@ def main():
             # Save the workspace to the .pkl file
             pickle.dump(workspace, out_file)
 
-
 if __name__ == "__main__":
 
     main()
-

@@ -237,7 +237,8 @@ class PlotGPR:
         self.fig = None   # Figure object
         self.axes = None  # Axes object
 
-    def plot(self, y_train, y_test, y_mean, y_cov, r2=None, file_name=None):
+    def plot(self, y_train, y_test, y_mean, y_cov, r2=None,
+             file_name=None, test_years=None):
         """
         Plots the knowing data points, GPR predictions, and uncertainty
         intervals.
@@ -252,16 +253,31 @@ class PlotGPR:
         :param r2: FLOAT with the coefficient of determination of the
         area of validation
         :param file_name: STR with the name of the file to save the plot
+        :param test_years: LIST with the range or specific testing years
         :return: None
         """
         self.fig, self.axes = plt.subplots(figsize=self.figure_size)
 
-        # Extraction of important data from the x-axis for plotting
-        x_labels = np.array(self.df["Monat/Jahr"])  # All X-axis time labels
-        x_indexes = np.arange(x_labels.shape[0])  # X-axis indexes
-        x_indexes_train, x_indexes_test = split_data(x_indexes, 0.7)
+        # Extract X-axis labels and indexes
+        x_labels = np.array(self.df["Monat/Jahr"])
+        x_indexes = np.arange(x_labels.shape[0])
+
+        if test_years:
+            test_df = self.df[self.df["Jahr"].isin(test_years)]
+            train_df = self.df[~self.df["Jahr"].isin(test_years)]
+            x_indexes_train = train_df.index.values
+            x_indexes_test = test_df.index.values
+
+        else:
+            x_indexes_train, x_indexes_test = split_data(x_indexes, 0.7)
+
         x_ticks = np.arange(0, len(x_indexes), 6)  # X ticks for plotting
         x_labs_plot = x_labels[x_ticks]  # X labels for plotting
+
+        # Ensure last tick matches the last value on the x-axis
+        if x_ticks[-1] != len(x_indexes) - 1:
+            x_ticks = np.append(x_ticks, len(x_indexes) - 1)
+            x_labs_plot = np.append(x_labs_plot, x_labels[-1])
 
         # Set the title and labels
         self.axes.set_title(self.title)
@@ -303,8 +319,8 @@ class PlotGPR:
                            bbox=dict(facecolor='white', alpha=0.2))
 
         # Add a vertical hashed line at the beginning of the test data
-        self.axes.axvline(x=x_indexes_test[0], color="k",
-                          linestyle="--", linewidth=1)
+        # self.axes.axvline(x=x_indexes_test[0], color="k",
+        #                  linestyle="--", linewidth=1)
 
         if file_name:
             self.fig.savefig(file_name, dpi=self.dpi,

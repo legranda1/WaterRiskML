@@ -19,6 +19,28 @@ def split_data(data, split_ratio=0.7):
     return train_data, test_data
 
 
+def split_data_by_year(data, year_column, train_year_range, test_year_range):
+    """
+    Split data into training and testing sets based on year ranges.
+    :param data: List, NP.Array, or Pandas DataFrame containing the
+    data to be split.
+    :param year_column: STR or INT indicating the column that
+    contains the year information.
+    :param train_year_range: TUPLE (start_year, end_year) indicating
+    the range of years for the training data.
+    :param test_year_range: TUPLE (start_year, end_year) indicating the
+    range of years for the testing data.
+    :return: TUPLE with training data and testing data.
+    """
+    # Split data based on the provided year ranges
+    train_data = data[(data[year_column] >= train_year_range[0])
+                      & (data[year_column] <= train_year_range[1])]
+    test_data = data[(data[year_column] >= test_year_range[0])
+                     & (data[year_column] <= test_year_range[1])]
+
+    return train_data, test_data
+
+
 def is_highly_correlated(feature, selected_feats,
                          corr_matrix):
     """
