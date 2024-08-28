@@ -13,8 +13,8 @@ if __name__ == "__main__":
     FNAME = FNAMES[0]
 
     # Load and filter the data
-    data = DataManager(xlsx_file_name=FNAME).filter_data()
-    # data = DataManager(xlsx_file_name=FNAME).iterative_cleaning(COL_ALL)
+    data = DataManager(xlsx_file_name=FNAME).filter_data().reset_index(drop=True)
+    # data = DataManager(xlsx_file_name=FNAME).iterative_cleaning(COL_ALL).reset_index(drop=True)
 
     # Define the full range of years (2010 to 2020 in this case)
     full_year_range = (2010, 2020)

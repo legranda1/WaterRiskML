@@ -12,7 +12,7 @@ from sklearn.metrics import root_mean_squared_error, mean_absolute_error
 if __name__ == "__main__":
     # Flags
     # Put anything except True or False to have the target wo outliers
-    OUTLIERS = False
+    OUTLIERS = 1
     SHOW_PLOTS = True
     SAVE_PLOTS = False
 
@@ -27,13 +27,13 @@ if __name__ == "__main__":
     # Load and filter the data
     if OUTLIERS is True:
         NICK_NAME = "w_outliers"
-        data = DataManager(xlsx_file_name=FNAME).filter_data()
+        data = DataManager(xlsx_file_name=FNAME).filter_data().reset_index(drop=True)
     elif OUTLIERS is False:
         NICK_NAME = "wo_outliers"
-        data = DataManager(xlsx_file_name=FNAME).iterative_cleaning(COL_ALL)
+        data = DataManager(xlsx_file_name=FNAME).iterative_cleaning(COL_ALL).reset_index(drop=True)
     else:
         NICK_NAME = "tar_wo_outliers"
-        data = DataManager(xlsx_file_name=FNAME).iterative_cleaning("Gesamt/Kopf")
+        data = DataManager(xlsx_file_name=FNAME).iterative_cleaning("Gesamt/Kopf").reset_index(drop=True)
 
     SEL_FEATS = [
         "NS Monat",         # Monthly precipitation
@@ -70,9 +70,14 @@ if __name__ == "__main__":
     x_test = np.array(test_df[SEL_FEATS])
     y_test = np.array(test_df[COL_TAR])
 
-    # Generate index arrays for the x-axis
+    # Extract all features and target arrays
     x_all = np.array(data[SEL_FEATS])
     y_all = np.array(data[COL_TAR])
+
+    # These indexes aren't used in this script, but the fit_and_test function does use them
+    # and loses some decimals. That's why it's recalculated at the end to ensure the difference is no greater than 1e-10
+    x_indexes_train = train_df.index.values  # Exact positions of the training years
+    x_indexes_test = test_df.index.values  # Exact positions of the testing years
 
     # Generating the GPR without any class (from scratch)
     nu_s = [0.5, 1.5, 2.5, np.inf]

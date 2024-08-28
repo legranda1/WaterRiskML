@@ -24,7 +24,8 @@ from sklearn import preprocessing
 from sklearn.gaussian_process import GaussianProcessRegressor
 from sklearn.gaussian_process.kernels import (ConstantKernel, Matern,
                                               WhiteKernel)
-from sklearn.metrics import root_mean_squared_error, mean_absolute_error
+from sklearn.model_selection import cross_validate, cross_val_score, KFold, StratifiedKFold
+from sklearn.metrics import make_scorer, mean_squared_error, mean_absolute_error, r2_score
 from sklearn.exceptions import ConvergenceWarning
 
 logging.captureWarnings(True)
@@ -85,71 +86,46 @@ SEL_FEATS = [
 ]
 
 
-def fit_and_test(iter_params):
+def fit_and_test_cv(params, X, y):
     """
-    Fits a machine learning pipeline and tests its performance on
-    given data.
-    :param iter_params: A TUPLE containing parameters (object),
-    features (np.array), targets (np.array), training and
-    testing indices (np.array)
+    Applies cross-validation to evaluate the model.
+    :param params: The parameter object (kernel, scaler, etc.)
+    :param X: Feature matrix
+    :param y: Target vector
     :return: The parameter object with updated performance metrics
     """
+    start_logging(dir=DIR_LOG_ACTIONS, nick_name=f"of_all_feats_{NICK_NAME}_w_noise", code_name=CODE_NAME)
 
-    start_logging(dir=DIR_LOG_ACTIONS,
-                  nick_name=f"of_all_feats_{NICK_NAME}_w_noise",
-                  code_name=CODE_NAME)
     try:
-        # Unpack the tuple
-        cnt_i = iter_params[0].idx  # Iteration counter
-        # Parameters (kernel, scaler, features, indexes, pipe, etc.)
-        params = iter_params[0]
-        features = iter_params[1]
-        targets = iter_params[2]
-        train_idx = iter_params[3]
-        test_idx = iter_params[4]
-
-        # Record the start time of the iteration
+        # Record the start time
         start_time = time.time()
         info_logger = logging.getLogger("info_logger")
-        info_logger.info(f"Iteration = {cnt_i + 1}")
         info_logger.info(f"{params}\n")
 
-        # Get the pipeline from the parameters
-        pipeline = params.pipe
+        # Define a custom scoring function for cross-validation
+        scoring = {
+            'r2': make_scorer(r2_score),
+            'rmse': make_scorer(mean_squared_error, squared=False),
+            'mae': make_scorer(mean_absolute_error)
+        }
 
-        with warnings.catch_warnings(record=True) as caught_warnings:
-            warnings.simplefilter("always")
-            pipeline.fit(features[train_idx], targets[train_idx])
+        # Perform cross-validation
+        cv_results = cross_validate(params.pipe, X, y,
+                                    cv=KFold(n_splits=5, shuffle=True, random_state=42),
+                                    scoring=scoring, return_train_score=False)
 
-            for warning in caught_warnings:
-                if issubclass(warning.category, ConvergenceWarning):
-                    warning_logger = logging.getLogger("warning_logger")
-                    warning_logger.warning(f"ConvergenceWarning in iteration"
-                                           f" {cnt_i + 1}: {warning.message}")
+        # Store the mean of cross-validation metrics in the params object
+        params.r2_test = np.mean(cv_results['test_r2'])
+        params.rmse_test = np.mean(cv_results['test_rmse'])
+        params.mae_test = np.mean(cv_results['test_mae'])
 
-        # Get the GaussianProcessRegressor from the pipeline
-        gp = pipeline[1]
-
-        # Predict the target values for the testing data
-        predictions = pipeline.predict(features[test_idx])
-
-        # Calculate performance metrics and update the parameter object
-        params.kernel_learned = gp.kernel_
-        params.marg_lh = gp.log_marginal_likelihood_value_
-        params.r2_test = pipeline.score(features[test_idx], targets[test_idx])
-        params.rmse_test = root_mean_squared_error(targets[test_idx],
-                                                   predictions)
-        params.mae_test = mean_absolute_error(targets[test_idx], predictions)
-
-        # Record the end time of the approach
+        # Record the end time of the iteration
         conclude_time = time.time()
 
-        # Print more parameters and iteration details
+        # Log the parameters and metrics
         info_logger.info(params)
-        info_logger.info(f"Iteration time:"
-                         f" {conclude_time - start_time:.2f} seconds\n")
+        info_logger.info(f"Iteration time: {conclude_time - start_time:.2f} seconds\n")
 
-        # Return the updated parameter object
         return params
 
     except Exception as e:
@@ -169,49 +145,12 @@ def main():
     # Record the initial time for tracking script duration
     init_time = time.time()
 
-    if YEAR_TEST:
-        # Define the testing year range or individual testing years
-        # Example: testing from 2015 to 2017 or non-contiguous years like [2013, 2017, 2019]
-        test_years = [2015, 2016, 2017]  # Can be a range or specific years
-
-        # Select the testing data based on the given test years
-        test_df = data[data["Jahr"].isin(test_years)]
-
-        # Define the training data by excluding the testing years
-        train_df = data[~data["Jahr"].isin(test_years)]
-
-        # Extract all features and target arrays for training and testing
-        x_train = np.array(train_df[SEL_FEATS])
-        y_train = np.array(train_df[COL_TAR])
-
-        x_test = np.array(test_df[SEL_FEATS])
-        y_test = np.array(test_df[COL_TAR])
-
-        # Extract all features and target arrays
-        x_all = np.array(data[SEL_FEATS])
-        y_all = np.array(data[COL_TAR])
-
-        # Find the exact positions (indexes) of the training and testing data in the original dataset
-        x_indexes_train = train_df.index.values  # Exact positions of the training years
-        x_indexes_test = test_df.index.values  # Exact positions of the testing years
-    else:
-        # Extraction of all input and output data
-        x_all = np.array(data[SEL_FEATS])
-        y_all = np.array(data[COL_TAR])
-
-        # Extraction of important data from the x-axis
-        x_indexes = np.arange(x_all.shape[0])  # X-axis indexes
-        x_indexes_train, x_indexes_test = split_data(x_indexes, 0.7)
-
-        # Splitting training and test data
-        x_train, x_test = split_data(x_all, 0.7)
-        y_train, y_test = split_data(y_all, 0.7)
+    # Extract all features and target arrays
+    x_all = np.array(data[SEL_FEATS])
+    y_all = np.array(data[COL_TAR])
 
     # List of the most popular scalers for preprocessing
     pop_scalers = [preprocessing.StandardScaler(),
-                   preprocessing.QuantileTransformer(
-                       n_quantiles=len(x_train), random_state=0
-                   ),
                    preprocessing.MinMaxScaler(feature_range=(0, 1)),
                    preprocessing.RobustScaler(),
                    preprocessing.PowerTransformer(method='yeo-johnson',
@@ -242,20 +181,14 @@ def main():
 
             all_par_sets.append((GPR(kernel=kernel, scaler=scaler,
                                      feats=SEL_FEATS,
-                                     idx=counter),
-                                 x_all,
-                                 y_all, x_indexes_train,
-                                 x_indexes_test))
+                                     idx=counter)))
             counter += 1
-
-    results_iter = all_par_sets
 
     # Use multiprocessing Pool to distribute tasks across NUMBER_CPUS
     with Pool(NUMBER_CPUS) as pool:
         # Apply fit_and_test function to each tuple
         # in results_iter asynchronously
-        result = pool.map_async(fit_and_test, results_iter,
-                                chunksize=CHUNK_SIZE)
+        result = pool.map_async(lambda p: fit_and_test_cv(p, x_all, y_all), all_par_sets, chunksize=CHUNK_SIZE)
         result.wait()
         # Check if all processes were successful
         if result.successful():
@@ -299,54 +232,15 @@ def main():
     # Get the best
     if BEST_R2:
         best_index = r2_test_scores.argmax()  # Find the index of the best R2 score
-    # Get the parameter set corresponding to the best score
-    best_par_set = all_par_sets_updated[best_index]
-    # Log the total number of iterations
-    info_logger = logging.getLogger("info_logger")
-    info_logger.info(f"\nTotal number of iterations: {counter}")
-    # Log the index of the best iteration
-    info_logger.info(f"Best iteration: {best_index + 1}")
-    if BEST_R2:
-        # Log the best R2 score
+        # Get the parameter set corresponding to the best score
+        best_par_set = all_par_sets_updated[best_index]
+        # Log the total number of iterations
+        info_logger = logging.getLogger("info_logger")
+        info_logger.info(f"\nTotal number of iterations: {counter}")
+        # Log the index of the best iteration
+        info_logger.info(f"Best iteration: {best_index + 1}")
         info_logger.info(f"Best R2 score: {r2_test_scores[best_index]}")
         info_logger.info(best_par_set)  # Log the best parameter set
-
-    # Extract and check results by re-computing without pipe
-    best_scaler = best_par_set.scaler
-    best_feats = best_par_set.feats
-    feats_indexes = [SEL_FEATS.index(feature) for feature in best_feats]
-    x_train_scaled = best_scaler.fit_transform(x_train[:, feats_indexes])
-    x_test_scaled = best_scaler.transform(x_test[:, feats_indexes])
-    best_gp = GaussianProcessRegressor(kernel=best_par_set.kernel,
-                                       n_restarts_optimizer=50,
-                                       random_state=42,
-                                       normalize_y=True,
-                                       alpha=1e-10)
-    # If necessary, change x_train_scaled to x_all_scaled to fit
-    # the GPR to all data.
-    best_gp.fit(x_train_scaled, y_train)
-    marg_lh = best_gp.log_marginal_likelihood_value_
-    y_pred_test = best_gp.predict(x_test_scaled)
-    r2_test = best_gp.score(x_test_scaled, y_test)
-    rmse_test = root_mean_squared_error(y_test, y_pred_test)
-    mae_test = mean_absolute_error(y_test, y_pred_test)
-
-    # Check if the re-computed results differ significantly
-    # from the one with pipe
-    eps = 1.0e-10  # Tolerance for detecting significant differences
-    check_error = (np.abs(best_par_set.marg_lh - marg_lh) > eps or
-                   np.abs(best_par_set.r2_test - r2_test) > eps or
-                   np.abs(best_par_set.rmse_test - rmse_test) > eps or
-                   np.abs(best_par_set.mae_test - mae_test) > eps)
-
-    if check_error:
-        info_logger = logging.getLogger("info_logger")
-        info_logger.info("\nNew fit, result change, "
-                         "difference > {eps}!")
-        info_logger.info(f"log marginal likelihood (LML): {marg_lh}")
-        info_logger.info(f"R2_test: {r2_test}")
-        info_logger.info(f"RMSE_test: {rmse_test}")
-        info_logger.info(f"MAE_test: {mae_test}")
 
     # Record the end time of the approach
     end_time = time.time()
@@ -355,40 +249,13 @@ def main():
     info_logger.info(f"\nRunning time: \n{total_time:5.3f} seconds "
                      f"/ {datetime.timedelta(seconds=total_time)}")
 
-    if SAVE_PLOTS or SHOW_PLOTS:
-        x_all_scaled = best_scaler.transform(x_all[:, feats_indexes])
-        y_mean, y_cov = best_gp.predict(x_all_scaled, return_cov=True)
-        # Create plotter instance and plot
-        plotter = PlotGPR(data, f"GPR with {best_gp.kernel_}",
-                          "Time [Month/Year]",
-                          "Monthly per capita water consumption [L/(C*d)]",
-                          1.96,
-                          fig_size=(12, 6), dpi=150)
-        if SHOW_PLOTS:
-            if YEAR_TEST:
-                plotter.plot(y_train, y_test, y_mean, y_cov, r2=r2_test,
-                             test_years=test_years)
-            else:
-                plotter.plot(y_train, y_test, y_mean, y_cov, r2=r2_test)
-        if SAVE_PLOTS:
-            create_directory(DIR_PLOTS)
-            path = (f"{DIR_PLOTS}best_gpr_of_all_feats_{NICK_NAME}_"
-                    f"w_noise_found_in_{CODE_NAME}.png")
-            if YEAR_TEST:
-                plotter.plot(y_train, y_test, y_mean,
-                             y_cov, r2=r2_test, file_name=path,
-                             test_years=test_years)
-            else:
-                plotter.plot(y_train, y_test, y_mean,
-                             y_cov, r2=r2_test, file_name=path)
     if SAVE_WORKSPACE and result.successful():
         workspace = {"best_par_set": best_par_set,
-                     "best_gp": best_gp, "all_features": x_all,
-                     "target": y_all, "best_scaler": best_scaler,
+                     "all_features": x_all,
+                     "target": y_all,
+                     "best_scaler": best_par_set.scaler,
                      "all_par_sets_updated": all_par_sets_updated,
                      "scores": r2_test_scores,
-                     "x_indexes_train": x_indexes_train,
-                     "x_indexes_test": x_indexes_test,
                      "time": total_time}
         create_directory(DIR_GPR_OUT_DATA)
         # .pkl for Pickle files

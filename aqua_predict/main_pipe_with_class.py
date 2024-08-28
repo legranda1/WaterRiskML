@@ -32,8 +32,8 @@ if __name__ == "__main__":
     FNAME = FNAMES[0]
 
     # Load and filter the data
-    data = DataManager(xlsx_file_name=FNAME).filter_data()
-    # data = DataManager(xlsx_file_name=FNAME).iterative_cleaning(COL_ALL)
+    data = DataManager(xlsx_file_name=FNAME).filter_data().reset_index(drop=True)
+    # data = DataManager(xlsx_file_name=FNAME).iterative_cleaning(COL_ALL).reset_index(drop=True)
 
     # Extraction of all input and output data
     x_all = np.array(data[COL_FEAT])
