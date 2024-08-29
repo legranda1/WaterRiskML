@@ -29,8 +29,14 @@ r2_test_scores = np.array([par_set.r2_test
 # Extract RMSE scores from each parameter set
 rmse_test_scores = np.array([par_set.rmse_test
                              for par_set in data])
+# Extract NRMSE scores from each parameter set
+nrmse_test_scores = np.array([par_set.nrmse_test
+                             for par_set in data])
 # Extract MAE scores from each parameter set
 mae_test_scores = np.array([par_set.mae_test
+                            for par_set in data])
+# Extract NMAE scores from each parameter set
+nmae_test_scores = np.array([par_set.nmae_test
                             for par_set in data])
 
 # Create a DataFrame with the results
@@ -38,7 +44,9 @@ result_df = pd.DataFrame({
     "lh": lml_scores,
     "r2": r2_test_scores,
     "rmse": rmse_test_scores,
-    "mae": mae_test_scores
+    "nrmse": nrmse_test_scores,
+    "mae": mae_test_scores,
+    "nmae": nmae_test_scores
 })
 
 # Round numerical values to 2 decimal places

@@ -104,9 +104,9 @@ def fit_and_test_cv(params, X, y):
 
         # Define a custom scoring function for cross-validation
         scoring = {
-            'r2': make_scorer(r2_score),
-            'rmse': make_scorer(mean_squared_error, squared=False),
-            'mae': make_scorer(mean_absolute_error)
+            "r2": make_scorer(r2_score),
+            "rmse": make_scorer(mean_squared_error, squared=False),
+            "mae": make_scorer(mean_absolute_error)
         }
 
         # Perform cross-validation
@@ -115,9 +115,9 @@ def fit_and_test_cv(params, X, y):
                                     scoring=scoring, return_train_score=False)
 
         # Store the mean of cross-validation metrics in the params object
-        params.r2_test = np.mean(cv_results['test_r2'])
-        params.rmse_test = np.mean(cv_results['test_rmse'])
-        params.mae_test = np.mean(cv_results['test_mae'])
+        params.r2_test = np.mean(cv_results["test_r2"])
+        params.rmse_test = np.mean(cv_results["test_rmse"])
+        params.mae_test = np.mean(cv_results["test_mae"])
 
         # Record the end time of the iteration
         conclude_time = time.time()
@@ -204,8 +204,14 @@ def main():
             # Extract RMSE scores from each parameter set
             rmse_test_scores = np.array([par_set.rmse_test
                                          for par_set in all_par_sets_updated])
+            # Extract NRMSE scores from each parameter set
+            nrmse_test_scores = np.array([par_set.nrmse_test
+                                         for par_set in all_par_sets_updated])
             # Extract MAE scores from each parameter set
             mae_test_scores = np.array([par_set.mae_test
+                                        for par_set in all_par_sets_updated])
+            # Extract NMAE scores from each parameter set
+            nmae_test_scores = np.array([par_set.nmae_test
                                         for par_set in all_par_sets_updated])
 
             # Create a DataFrame with the results
@@ -213,7 +219,9 @@ def main():
                 "lh": lml_scores,
                 "r2": r2_test_scores,
                 "rmse": rmse_test_scores,
-                "mae": mae_test_scores
+                "nrmse": nrmse_test_scores,
+                "mae": mae_test_scores,
+                "nmae": nmae_test_scores,
             })
 
             # Round numerical values to 2 decimal places

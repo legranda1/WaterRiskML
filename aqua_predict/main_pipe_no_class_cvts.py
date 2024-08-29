@@ -8,6 +8,8 @@ from sklearn.pipeline import Pipeline
 from sklearn.gaussian_process.kernels import (ConstantKernel, Matern,
                                               WhiteKernel)
 from sklearn.metrics import root_mean_squared_error, mean_absolute_error
+from sklearn.model_selection import TimeSeriesSplit
+import numpy as np
 
 if __name__ == "__main__":
     # Flags
@@ -48,38 +50,14 @@ if __name__ == "__main__":
                             # than or equal to 25 °C)
         "Eistage",          # Number of ice days
         "T Min Monat"       # Minimum temperature of the month
-]
-    # SEL_FEATS = selected_features(
-    #    data, COL_TAR, COL_FEAT, prioritize_feature="T Monat Mittel"
-    #)
-
-    # Define the testing year range or individual testing years
-    # Example: testing from 2015 to 2017 or non-contiguous years like [2013, 2017, 2019]
-    test_years = [2015, 2016, 2017]  # Can be a range or specific years
-
-    # Select the testing data based on the given test years
-    test_df = data[data["Jahr"].isin(test_years)]
-
-    # Define the training data by excluding the testing years
-    train_df = data[~data["Jahr"].isin(test_years)]
-
-    # Extract all features and target arrays for training and testing
-    x_train = np.array(train_df[SEL_FEATS])
-    y_train = np.array(train_df[COL_TAR])
-
-    x_test = np.array(test_df[SEL_FEATS])
-    y_test = np.array(test_df[COL_TAR])
-    y_mean_test = np.mean(y_test)
+    ]
 
     # Extract all features and target arrays
     x_all = np.array(data[SEL_FEATS])
     y_all = np.array(data[COL_TAR])
 
-    # These indexes aren't used in this script, but the fit_and_test function does use them
-    # and loses some decimals. That's why it's recalculated at the end to ensure the difference is no greater than 1e-10
-    x_indexes_train = train_df.index.values  # Exact positions of the training years
-    x_indexes_test = test_df.index.values  # Exact positions of the testing years
-    combined_index = np.arange(x_all.shape[0])
+    # Initialize TimeSeriesSplit for cross-validation
+    tscv = TimeSeriesSplit(n_splits=5)  # Choose the number of splits
 
     # Generating the GPR without any class (from scratch)
     nu_s = [0.5, 1.5, 2.5, np.inf]
@@ -110,44 +88,52 @@ if __name__ == "__main__":
 
             scaler = preprocessing.StandardScaler()
             pipe = Pipeline([("scaler", scaler), ("gp", gp)])
-            pipe.fit(x_train, y_train)
-            print(f"initial kernel: {pipe[1].kernel}")
-            print(f"kernel learned: {pipe[1].kernel_}")
-            print(f"scaler: {scaler}")
-            print(f"log marginal likelihood (LML):"
-                  f" {pipe[1].log_marginal_likelihood_value_}")
-            r2_test = pipe.score(x_test, y_test)
-            print(f"R2_test: {r2_test}")
-            y_pred_test = pipe.predict(x_test)
 
-            # Calculate MAE
-            mae_test = mean_absolute_error(y_test, y_pred_test)
-            # Calculate NRMSE as a percentage
-            nmae_test = (mae_test / y_mean_test) * 100
-            # Calculate RMSE
-            rmse_test = root_mean_squared_error(y_test, y_pred_test)
-            # Calculate NRMSE as a percentage
-            nrmse_test = (rmse_test / y_mean_test) * 100
-            print(f"RMSE_test: {rmse_test}")
-            print(f"NRMSE_test: {nrmse_test} %")
-            print(f"MAE_test: {mae_test}")
-            print(f"NMAE_test: {nmae_test} %\n")
-            y_mean, y_cov = pipe.predict(x_all, return_cov=True)
+            for fold, (train_index, test_index) in enumerate(tscv.split(x_all)):
+                x_train, x_test = x_all[train_index], x_all[test_index]
+                y_train, y_test = y_all[train_index], y_all[test_index]
+                y_mean_test = np.mean(y_test)
 
-            # Create plotter instance and plot
-            plotter = PlotGPR(data, f"GPR with {pipe[1].kernel_}",
-                              "Time [Month/Year]",
-                              "Monthly per capita water consumption [L/(C*d)]",
-                              1.96,
-                              fig_size=(12, 6), dpi=150)
-            if SHOW_PLOTS:
-                plotter.plot(y_train, y_test, y_mean, y_cov,
-                             x_indexes_train, x_indexes_test, combined_index,
-                             r2=r2_test)
-            if SAVE_PLOTS:
-                create_directory(DIR_PLOTS)
-                path = (f"{DIR_PLOTS}/gpr_{NICK_NAME}_{label}_nu_of_{nu}_"
-                        f"found_in_{CODE_NAME}.png")
-                plotter.plot(y_train, y_test, y_mean, y_cov,
-                             x_indexes_train, x_indexes_test, combined_index,
-                             r2=r2_test, file_name=path)
+                pipe.fit(x_train, y_train)
+                print(f"Fold {fold + 1}")
+                print(f"initial kernel: {pipe[1].kernel}")
+                print(f"kernel learned: {pipe[1].kernel_}")
+                print(f"scaler: {scaler}")
+                print(f"log marginal likelihood (LML):"
+                      f" {pipe[1].log_marginal_likelihood_value_}")
+                r2_test = pipe.score(x_test, y_test)
+                print(f"R2_test: {r2_test}")
+                y_pred_test = pipe.predict(x_test)
+
+                # Calculate MAE
+                mae_test = mean_absolute_error(y_test, y_pred_test)
+                # Calculate NRMSE as a percentage
+                nmae_test = (mae_test / y_mean_test) * 100
+                # Calculate RMSE
+                rmse_test = root_mean_squared_error(y_test, y_pred_test)
+                # Calculate NRMSE as a percentage
+                nrmse_test = (rmse_test / y_mean_test) * 100
+                print(f"RMSE_test: {rmse_test}")
+                print(f"NRMSE_test: {nrmse_test} %")
+                print(f"MAE_test: {mae_test}")
+                print(f"NMAE_test: {nmae_test} %\n")
+                combined_index = np.concatenate((train_index, test_index))
+                y_mean, y_cov = pipe.predict(x_all[combined_index], return_cov=True)
+
+                # Create plotter instance and plot
+                plotter = PlotGPR(data, f"GPR with {pipe[1].kernel_}",
+                                  "Time [Month/Year]",
+                                  "Monthly per capita water consumption [L/(C*d)]",
+                                  1.96,
+                                  fig_size=(12, 6), dpi=150)
+                if SHOW_PLOTS:
+                    plotter.plot(y_train, y_test, y_mean, y_cov,
+                                 train_index, test_index, combined_index,
+                                 r2=r2_test)
+                if SAVE_PLOTS:
+                    create_directory(DIR_PLOTS)
+                    path = (f"{DIR_PLOTS}/gpr_{NICK_NAME}_{label}_nu_of_{nu}_"
+                            f"fold_{fold + 1}_found_in_{CODE_NAME}.png")
+                    plotter.plot(y_train, y_test, y_mean, y_cov,
+                                 train_index, test_index, combined_index,
+                                 r2=r2_test, file_name=path)

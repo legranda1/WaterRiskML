@@ -237,8 +237,9 @@ class PlotGPR:
         self.fig = None   # Figure object
         self.axes = None  # Axes object
 
-    def plot(self, y_train, y_test, y_mean, y_cov, r2=None,
-             file_name=None, test_years=None):
+    def plot(self, y_train, y_test, y_mean, y_cov,
+             x_indexes_train, x_indexes_test, combined_index,
+             r2=None, file_name=None):
         """
         Plots the knowing data points, GPR predictions, and uncertainty
         intervals.
@@ -250,27 +251,23 @@ class PlotGPR:
         points
         :param y_cov: 2D NP.ARRAY containing the covariance matrix for
         the predicted values
+        :param x_indexes_train: NP.ARRAY with indices corresponding to
+        the training data points
+        :param x_indexes_test: NP.ARRAY with indices corresponding to
+        the test data points
+        :param combined_index: NP.ARRAY with indices corresponding to
+        the training and test data points
         :param r2: FLOAT with the coefficient of determination of the
         area of validation
         :param file_name: STR with the name of the file to save the plot
-        :param test_years: LIST with the range or specific testing years
         :return: None
         """
         self.fig, self.axes = plt.subplots(figsize=self.figure_size)
 
         # Extract X-axis labels and indexes
-        x_labels = np.array(self.df["Monat/Jahr"])
+        new_df = self.df.iloc[combined_index]
+        x_labels = new_df["Monat/Jahr"].values
         x_indexes = np.arange(x_labels.shape[0])
-
-        if test_years:
-            test_df = self.df[self.df["Jahr"].isin(test_years)]
-            train_df = self.df[~self.df["Jahr"].isin(test_years)]
-            x_indexes_train = train_df.index.values
-            x_indexes_test = test_df.index.values
-
-        else:
-            x_indexes_train, x_indexes_test = split_data(x_indexes, 0.7)
-
         x_ticks = np.arange(0, len(x_indexes), 6)  # X ticks for plotting
         x_labs_plot = x_labels[x_ticks]  # X labels for plotting
 

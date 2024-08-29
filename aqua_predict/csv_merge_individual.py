@@ -47,7 +47,7 @@ def extract_column_from_csvs(csv_paths, column_name, output_csv, output_dir):
 outliers = "w_outliers"
 noise = "w_noise"
 dataset = "WV14"
-columns = ["lh", "r2", "rmse", "mae"]
+columns = ["lh", "r2", "rmse", "nrmse", "mae", "nmae"]
 column_to_extract = columns[0]
 output_file_name = f"final_results_{column_to_extract}_{outliers}_{noise}_in_{dataset}.csv"
 

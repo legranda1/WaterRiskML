@@ -26,7 +26,9 @@ class GPR:
         self.marg_lh = None       # The marginal likelihood of the model
         self.r2_test = None       # The Nash-Sutcliffe model efficiency coefficient of the validation area
         self.rmse_test = None     # The root mean squared error of the validation / testing area
+        self.nrmse_test = None    # The normalized root mean squared error of the validation / testing area
         self.mae_test = None      # The mean absolute error of the validation / testing area
+        self.nmae_test = None     # The normalized mean absolute error of the validation / testing area
         self.idx = idx
         self._pipe = pipe         # Private attribute for pipe
         self.pipe_update = False  # Flag to indicate pipeline needs to be updated
@@ -111,7 +113,9 @@ class GPR:
             if self.marg_lh is not None else "",
             f"R2_test: {self.r2_test}" if self.r2_test is not None else "",
             f"RMSE_test: {self.rmse_test}" if self.rmse_test is not None else "",
-            f"MAE_test: {self.mae_test}" if self.mae_test is not None else ""
+            f"NRMSE_test: {self.nrmse_test} %" if self.nrmse_test is not None else "",
+            f"MAE_test: {self.mae_test}" if self.mae_test is not None else "",
+            f"NMAE_test: {self.nmae_test} %" if self.nmae_test is not None else ""
         ]
         return "\n".join(filter(lambda x: len(x) > 0, attributes))
 

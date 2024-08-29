@@ -12,6 +12,8 @@ import warnings
 # parallel processing
 from multiprocessing import Pool
 import numpy as np
+import pandas as pd
+
 from config import *
 from data import DataManager
 from fun import *
@@ -35,7 +37,7 @@ CODE_NAME = re.search(r"WV\d+", FNAME).group(0) \
 
 # Flags
 # Put anything except True or False to have the target wo outliers
-OUTLIERS = False
+OUTLIERS = True
 BEST_R2 = True
 BEST_LML = False
 SHOW_PLOTS = True
@@ -130,13 +132,18 @@ def fit_and_test(iter_params):
         # Predict the target values for the testing data
         predictions = pipeline.predict(features[test_idx])
 
+        y_mean_test = np.mean(targets[test_idx])
+        rmse = root_mean_squared_error(targets[test_idx], predictions)
+        mae = mean_absolute_error(targets[test_idx], predictions)
+
         # Calculate performance metrics and update the parameter object
         params.kernel_learned = gp.kernel_
         params.marg_lh = gp.log_marginal_likelihood_value_
         params.r2_test = pipeline.score(features[test_idx], targets[test_idx])
-        params.rmse_test = root_mean_squared_error(targets[test_idx],
-                                                   predictions)
-        params.mae_test = mean_absolute_error(targets[test_idx], predictions)
+        params.rmse_test = rmse
+        params.nrmse_test = (rmse / y_mean_test) * 100
+        params.mae_test = mae
+        params.nmae_test = (mae / y_mean_test) * 100
 
         # Record the end time of the approach
         conclude_time = time.time()
@@ -173,10 +180,12 @@ def main():
     # Extraction of important data from the x-axis
     x_indexes = np.arange(x_all.shape[0])  # X-axis indexes
     x_indexes_train, x_indexes_test = split_data(x_indexes, 0.7)
+    combined_index = np.arange(x_all.shape[0])
 
     # Splitting training and test data
     x_train, x_test = split_data(x_all, 0.7)
     y_train, y_test = split_data(y_all, 0.7)
+    y_mean_test = np.mean(y_test)
 
     # List of the most popular scalers for preprocessing
     pop_scalers = [preprocessing.StandardScaler(),
@@ -245,14 +254,43 @@ def main():
             # Retrieve results from asynchronous processing
             # (i.e., objects of GPRPars())
             all_par_sets_updated = result.get()
-            if BEST_LML:
-                # Extract LML scores from each parameter set
-                lml_scores = np.array([par_set.marg_lh
+            # Extract LML scores from each parameter set
+            lml_scores = np.array([par_set.marg_lh
+                                   for par_set in all_par_sets_updated])
+            # Extract R2 scores from each parameter set
+            r2_test_scores = np.array([par_set.r2_test
                                        for par_set in all_par_sets_updated])
-            if BEST_R2:
-                # Extract R2 scores from each parameter set
-                r2_test_scores = np.array([par_set.r2_test
-                                           for par_set in all_par_sets_updated])
+            # Extract RMSE scores from each parameter set
+            rmse_test_scores = np.array([par_set.rmse_test
+                                         for par_set in all_par_sets_updated])
+            # Extract NRMSE scores from each parameter set
+            nrmse_test_scores = np.array([par_set.nrmse_test
+                                         for par_set in all_par_sets_updated])
+            # Extract MAE scores from each parameter set
+            mae_test_scores = np.array([par_set.mae_test
+                                        for par_set in all_par_sets_updated])
+            # Extract NMAE scores from each parameter set
+            nmae_test_scores = np.array([par_set.nmae_test
+                                        for par_set in all_par_sets_updated])
+
+            # Create a DataFrame with the results
+            result_df = pd.DataFrame({
+                "lh": lml_scores,
+                "r2": r2_test_scores,
+                "rmse": rmse_test_scores,
+                "nrmse": nrmse_test_scores,
+                "mae": mae_test_scores,
+                "nmae": nmae_test_scores,
+            })
+
+            # Round numerical values to 2 decimal places
+            result_df = result_df.round(2)
+
+            # Save DataFrame to a CSV file
+            create_directory(DIR_RESULTS)
+            result_df.to_csv(f"{DIR_RESULTS}/results_of_all_feats_{NICK_NAME}_"
+                             f"w_noise_in_{CODE_NAME}.csv", index=False)
+
         else:
             # Handle case where GPR approach failed
             warning_logger = logging.getLogger("warning_logger")
@@ -297,7 +335,9 @@ def main():
     y_pred_test = best_gp.predict(x_test_scaled)
     r2_test = best_gp.score(x_test_scaled, y_test)
     rmse_test = root_mean_squared_error(y_test, y_pred_test)
+    nrmse_test = (rmse_test / y_mean_test) * 100
     mae_test = mean_absolute_error(y_test, y_pred_test)
+    nmae_test = (mae_test / y_mean_test) * 100
 
     # Check if the re-computed results differ significantly
     # from the one with pipe
@@ -305,7 +345,9 @@ def main():
     check_error = (np.abs(best_par_set.marg_lh - marg_lh) > eps or
                    np.abs(best_par_set.r2_test - r2_test) > eps or
                    np.abs(best_par_set.rmse_test - rmse_test) > eps or
-                   np.abs(best_par_set.mae_test - mae_test) > eps)
+                   np.abs(best_par_set.nrmse_test - nrmse_test) > eps or
+                   np.abs(best_par_set.mae_test - mae_test) > eps or
+                   np.abs(best_par_set.nmae_test - nmae_test) > eps)
 
     if check_error:
         info_logger = logging.getLogger("info_logger")
@@ -314,7 +356,9 @@ def main():
         info_logger.info(f"log marginal likelihood (LML): {marg_lh}")
         info_logger.info(f"R2_test: {r2_test}")
         info_logger.info(f"RMSE_test: {rmse_test}")
+        info_logger.info(f"NRMSE_test: {nrmse_test} %")
         info_logger.info(f"MAE_test: {mae_test}")
+        info_logger.info(f"NMAE_test: {nmae_test} %")
 
     # Record the end time of the approach
     end_time = time.time()
@@ -333,13 +377,16 @@ def main():
                           1.96,
                           fig_size=(12, 6), dpi=150)
         if SHOW_PLOTS:
-            plotter.plot(y_train, y_test, y_mean, y_cov, r2=r2_test)
+            plotter.plot(y_train, y_test, y_mean, y_cov,
+                         x_indexes_train, x_indexes_test, combined_index,
+                         r2=r2_test)
         if SAVE_PLOTS:
             create_directory(DIR_PLOTS)
             path = (f"{DIR_PLOTS}/best_gpr_of_{best_feats}_{NICK_NAME}_"
                     f"found_in_{CODE_NAME}.png")
-            plotter.plot(y_train, y_test, y_mean,
-                         y_cov, r2=r2_test, file_name=path)
+            plotter.plot(y_train, y_test, y_mean, y_cov,
+                         x_indexes_train, x_indexes_test, combined_index,
+                         r2=r2_test, file_name=path)
 
     if SAVE_WORKSPACE and result.successful():
         workspace = {"best_par_set": best_par_set,

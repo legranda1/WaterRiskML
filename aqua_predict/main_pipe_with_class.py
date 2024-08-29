@@ -35,13 +35,33 @@ if __name__ == "__main__":
     data = DataManager(xlsx_file_name=FNAME).filter_data().reset_index(drop=True)
     # data = DataManager(xlsx_file_name=FNAME).iterative_cleaning(COL_ALL).reset_index(drop=True)
 
-    # Extraction of all input and output data
+    # Define the testing year range or individual testing years
+    # Example: testing from 2015 to 2017 or non-contiguous years like [2013, 2017, 2019]
+    test_years = [2015, 2016, 2017]  # Can be a range or specific years
+
+    # Select the testing data based on the given test years
+    test_df = data[data["Jahr"].isin(test_years)]
+
+    # Define the training data by excluding the testing years
+    train_df = data[~data["Jahr"].isin(test_years)]
+
+    # Extract all features and target arrays for training and testing
+    x_train = np.array(train_df[COL_FEAT])
+    y_train = np.array(train_df[COL_TAR])
+
+    x_test = np.array(test_df[COL_FEAT])
+    y_test = np.array(test_df[COL_TAR])
+    y_mean_test = np.mean(y_test)
+
+    # Extract all features and target arrays
     x_all = np.array(data[COL_FEAT])
     y_all = np.array(data[COL_TAR])
 
-    # Splitting training and test data
-    x_train, x_test = split_data(x_all, 0.7)
-    y_train, y_test = split_data(y_all, 0.7)
+    # These indexes aren't used in this script, but the fit_and_test function does use them
+    # and loses some decimals. That's why it's recalculated at the end to ensure the difference is no greater than 1e-10
+    x_indexes_train = train_df.index.values  # Exact positions of the training years
+    x_indexes_test = test_df.index.values  # Exact positions of the testing years
+    combined_index = np.arange(x_all.shape[0])
 
     # Generating the GPR without any class (from scratch)
     nu_s = [0.5, 1.5, 2.5, np.inf]
@@ -55,9 +75,7 @@ if __name__ == "__main__":
               + WhiteKernel(noise_level=1e-5,
                             noise_level_bounds=(1e-10, 1e1)))
 
-    scaler = preprocessing.QuantileTransformer(
-                n_quantiles=92, random_state=0
-            )
+    scaler = preprocessing.StandardScaler()
 
     gpr = GPR(kernel=kernel, scaler=scaler)
 
@@ -70,8 +88,19 @@ if __name__ == "__main__":
     r2_test = gpr.pipe.score(x_test, y_test)
     print(f"R2_test: {r2_test}")
     y_pred_test = gpr.pipe.predict(x_test)
-    print(f"RMSE_test: {root_mean_squared_error(y_test, y_pred_test)}")
-    print(f"MAE_test: {mean_absolute_error(y_test, y_pred_test)}")
+
+    # Calculate MAE
+    mae_test = mean_absolute_error(y_test, y_pred_test)
+    # Calculate NRMSE as a percentage
+    nmae_test = (mae_test / y_mean_test) * 100
+    # Calculate RMSE
+    rmse_test = root_mean_squared_error(y_test, y_pred_test)
+    # Calculate NRMSE as a percentage
+    nrmse_test = (rmse_test / y_mean_test) * 100
+    print(f"RMSE_test: {rmse_test}")
+    print(f"NRMSE_test: {nrmse_test} %")
+    print(f"MAE_test: {mae_test}")
+    print(f"NMAE_test: {nmae_test} %\n")
     y_mean, y_cov = gpr.pipe.predict(x_all, return_cov=True)
 
     # Create plotter instance and plot
@@ -80,4 +109,6 @@ if __name__ == "__main__":
                       "Monthly per capita water consumption [L/(C*d)]",
                       1.96,
                       fig_size=(12, 6), dpi=200)
-    plotter.plot(y_train, y_test, y_mean, y_cov, r2=r2_test)
+    plotter.plot(y_train, y_test, y_mean, y_cov,
+                 x_indexes_train, x_indexes_test, combined_index,
+                 r2=r2_test)
