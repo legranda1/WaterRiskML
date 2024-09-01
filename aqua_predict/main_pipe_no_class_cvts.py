@@ -57,7 +57,7 @@ if __name__ == "__main__":
     y_all = np.array(data[COL_TAR])
 
     # Initialize TimeSeriesSplit for cross-validation
-    tscv = TimeSeriesSplit(n_splits=5)  # Choose the number of splits
+    tscv = TimeSeriesSplit(n_splits=4)  # Choose the number of splits
 
     # Generating the GPR without any class (from scratch)
     nu_s = [0.5, 1.5, 2.5, np.inf]

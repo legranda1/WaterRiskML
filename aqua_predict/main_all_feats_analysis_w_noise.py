@@ -37,7 +37,7 @@ CODE_NAME = re.search(r"WV\d+", FNAME).group(0) \
 # Flags
 # Put anything except True or False to have the target wo outliers
 YEAR_TEST = True
-OUTLIERS = True
+OUTLIERS = 1
 BEST_R2 = True
 SHOW_PLOTS = True
 SAVE_PLOTS = False

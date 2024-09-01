@@ -276,11 +276,6 @@ class PlotGPR:
             x_ticks = np.append(x_ticks, len(x_indexes) - 1)
             x_labs_plot = np.append(x_labs_plot, x_labels[-1])
 
-        # Set the title and labels
-        self.axes.set_title(self.title)
-        self.axes.set_xlabel(self.xlabel)
-        self.axes.set_ylabel(self.ylabel)
-
         # Plot knowing data points
         self.axes.scatter(x_indexes_train, y_train, c="k", s=15,
                           zorder=10, marker="x")
@@ -292,7 +287,27 @@ class PlotGPR:
         self.axes.fill_between(x_indexes,
                                y_mean - self.std * np.sqrt(np.diag(y_cov)),
                                y_mean + self.std * np.sqrt(np.diag(y_cov)),
-                               color="C0", alpha=0.2)
+                               color="C0", alpha=0.3, zorder=8)
+
+        # Add a gray background between the test data region
+        self.axes.axvspan(x_indexes_test[0], x_indexes_test[-1],
+                          color="gray", alpha=0.175, zorder=0)
+
+        # Add a vertical hashed line at the beginning and end of the test data
+        #self.axes.axvline(x=x_indexes_test[0], color="gray",
+        #                  linestyle="--", linewidth=1)
+        #self.axes.axvline(x=x_indexes_test[-1], color="gray",
+        #                  linestyle="--", linewidth=1)
+
+        # Set the title and labels
+        self.axes.set_title(self.title)
+        self.axes.set_xlabel(self.xlabel)
+        self.axes.set_ylabel(self.ylabel)
+
+        # Determine padding amount (e.g., 4% of the x-axis range)
+        padding = 0.01 * (x_indexes[-1] - x_indexes[0])
+        # Set the x-axis limits with padding
+        self.axes.set_xlim([x_indexes[0] - padding, x_indexes[-1] + padding])
 
         # Customize the plot
         self.axes.grid(True)
@@ -301,23 +316,24 @@ class PlotGPR:
         self.axes.tick_params(axis="x", rotation=70)
         legend = self.axes.legend(["Training Data", "Test Data",
                                    "GP Mean",
-                                   f"GP conf interval ({self.std} std)"],
-                                  loc="upper left")
-
-        # Extract the font size from the legend
-        fontsize = legend.get_texts()[0].get_fontsize()
+                                   f"GP conf interval ({self.std} std)"])
 
         if r2 is not None:
-            # Add R2 text in the upper right corner
-            textstr = f"$R^2 = {r2:.2f}$"
-            self.axes.text(0.87, 0.95, textstr, transform=self.axes.transAxes,
-                           fontsize=fontsize, verticalalignment="top",
-                           horizontalalignment="right",
-                           bbox=dict(facecolor='white', alpha=0.2))
+            # Calculate the middle of the test data area for R² text placement
+            middle_of_test_area = (x_indexes_test[0] + x_indexes_test[-1]) / 2
 
-        # Add a vertical hashed line at the beginning of the test data
-        # self.axes.axvline(x=x_indexes_test[0], color="k",
-        #                  linestyle="--", linewidth=1)
+            # Convert the middle_of_test_area to relative x-axis coordinates considering padding
+            x_axis_range = x_indexes[-1] + padding - (x_indexes[0] - padding)
+            x_pos = (middle_of_test_area - (x_indexes[0] - padding)) / x_axis_range
+
+            # Add R² text in the middle of the test data area at the same height
+            textstr = f"$R^2 = {r2:.2f}$"
+            self.axes.text(x_pos, 0.92, textstr,
+                           transform=self.axes.transAxes,
+                           fontsize=legend.get_texts()[0].get_fontsize(),
+                           verticalalignment="center",
+                           horizontalalignment="center",
+                           bbox=dict(facecolor='white', alpha=0.75))
 
         if file_name:
             self.fig.savefig(file_name, dpi=self.dpi,
