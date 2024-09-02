@@ -34,6 +34,10 @@ FNAME = FNAMES[0]
 CODE_NAME = re.search(r"WV\d+", FNAME).group(0) \
     if re.search(r"WV\d+", FNAME) else None
 
+year_ranges = {"test_range_1": [2015, 2016, 2017], "test_range_2:": [2018, 2019, 2020]}
+test_years = year_ranges["test_range_1"]
+key_range_name = next(k for k, v in year_ranges.items() if v == test_years)
+
 # Flags
 # Put anything except True or False to have the target wo outliers
 OUTLIERS = True
@@ -43,10 +47,10 @@ SAVE_PLOTS = True
 SAVE_WORKSPACE = True
 
 # Directories to create
-DIR_PLOTS = "../plots/gpr/group_feature_analysis/all_feats/"
-DIR_GPR_OUT_DATA = "../gpr_output_data/group_feature_analysis/all_feats/"
-DIR_LOG_ACTIONS = "../log_actions/group_feature_analysis/all_feats/"
-DIR_RESULTS = "../results/group_feature_analysis/all_feats/"
+DIR_PLOTS = f"../plots/gpr/group_feature_analysis/all_feats/{key_range_name}/"
+DIR_GPR_OUT_DATA = f"../gpr_output_data/group_feature_analysis/all_feats/{key_range_name}/"
+DIR_LOG_ACTIONS = f"../log_actions/group_feature_analysis/all_feats/{key_range_name}/"
+DIR_RESULTS = f"../results/group_feature_analysis/all_feats/{key_range_name}/"
 
 # System Configuration: CPU Allocation and Data Chunking
 # Number of CPU cores used, impacting the speed and efficiency
@@ -173,19 +177,28 @@ def main():
     # Record the initial time for tracking script duration
     init_time = time.time()
 
-    # Extraction of all input and output data
+    # Select the testing data based on the given test years
+    test_df = data[data["Jahr"].isin(test_years)]
+
+    # Define the training data by excluding the testing years
+    train_df = data[~data["Jahr"].isin(test_years)]
+
+    # Extract all features and target arrays for training and testing
+    x_train = np.array(train_df[SEL_FEATS])
+    y_train = np.array(train_df[COL_TAR])
+
+    x_test = np.array(test_df[SEL_FEATS])
+    y_test = np.array(test_df[COL_TAR])
+    y_mean_test = np.mean(y_test)
+
+    # Extract all features and target arrays
     x_all = np.array(data[SEL_FEATS])
     y_all = np.array(data[COL_TAR])
 
-    # Extraction of important data from the x-axis
-    x_indexes = np.arange(x_all.shape[0])  # X-axis indexes
-    x_indexes_train, x_indexes_test = split_data(x_indexes, 0.7)
+    # Find the exact positions (indexes) of the training and testing data in the original dataset
+    x_indexes_train = train_df.index.values  # Exact positions of the training years
+    x_indexes_test = test_df.index.values  # Exact positions of the testing years
     combined_index = np.arange(x_all.shape[0])
-
-    # Splitting training and test data
-    x_train, x_test = split_data(x_all, 0.7)
-    y_train, y_test = split_data(y_all, 0.7)
-    y_mean_test = np.mean(y_test)
 
     # List of the most popular scalers for preprocessing
     pop_scalers = [preprocessing.StandardScaler(),
@@ -210,6 +223,8 @@ def main():
     all_par_sets = []
     # Initialize the iteration counter
     counter = 0
+    # Define a length scale vector with one element per feature
+    length_scale = np.ones(len(SEL_FEATS))
     # Iterate over each scaler within the scalers list
     for scaler in scalers:
         for nu in nu_s:  # Iterate over each nu value
@@ -274,7 +289,7 @@ def main():
 
             # Save DataFrame to a CSV file
             create_directory(DIR_RESULTS)
-            result_df.to_csv(f"{DIR_RESULTS}/results_of_all_feats_{NICK_NAME}_"
+            result_df.to_csv(f"{DIR_RESULTS}results_of_all_feats_{NICK_NAME}_"
                              f"wo_noise_in_{CODE_NAME}.csv", index=False)
 
         else:
@@ -381,7 +396,7 @@ def main():
         # .pkl for Pickle files
         path = (f"{DIR_GPR_OUT_DATA}gpr_workspace_of_all_feats_{NICK_NAME}_"
                 f"wo_noise_in_{CODE_NAME}.pkl")
-        info_logger.info(f"Writing output to {path}")
+        print(f"Writing output to {path}")
         # Open the file for writing in binary mode
         with open(path, "wb") as out_file:
             # Save the workspace to the .pkl file

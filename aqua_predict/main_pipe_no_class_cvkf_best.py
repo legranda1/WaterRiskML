@@ -22,7 +22,7 @@ if __name__ == "__main__":
     DIR_PLOTS = "../plots/gpr/testing_folder"
 
     # Choose the file name of the Excel data you want to work with
-    FNAME = FNAMES[0]
+    FNAME = FNAMES[2]
     CODE_NAME = re.search(r"WV\d+", FNAME).group(0) \
         if re.search(r"WV\d+", FNAME) else None
 
@@ -80,6 +80,9 @@ if __name__ == "__main__":
     best_label = None
     best_nu = None
     best_fold = None
+
+    # Define a length scale vector with one element per feature
+    length_scale = np.ones(len(SEL_FEATS))
 
     for noise in noise_s:
         for nu in nu_s:

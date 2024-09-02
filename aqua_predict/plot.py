@@ -308,13 +308,14 @@ class PlotGPR:
         padding = 0.01 * (x_indexes[-1] - x_indexes[0])
         # Set the x-axis limits with padding
         self.axes.set_xlim([x_indexes[0] - padding, x_indexes[-1] + padding])
+        self.axes.set_ylim(40, 200)
 
         # Customize the plot
         self.axes.grid(True)
         self.axes.set_xticks(x_ticks)
         self.axes.set_xticklabels(x_labs_plot)
         self.axes.tick_params(axis="x", rotation=70)
-        legend = self.axes.legend(["Training Data", "Test Data",
+        legend = self.axes.legend(["Training Data", "Testing Data",
                                    "GP Mean",
                                    f"GP conf interval ({self.std} std)"])
 
@@ -333,7 +334,7 @@ class PlotGPR:
                            fontsize=legend.get_texts()[0].get_fontsize(),
                            verticalalignment="center",
                            horizontalalignment="center",
-                           bbox=dict(facecolor='white', alpha=0.75))
+                           bbox=dict(facecolor='white', alpha=0.8))
 
         if file_name:
             self.fig.savefig(file_name, dpi=self.dpi,

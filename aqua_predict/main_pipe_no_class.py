@@ -85,6 +85,9 @@ if __name__ == "__main__":
     nu_s = [0.5, 1.5, 2.5, np.inf]
     noise_s = ["Yes", "No"]
 
+    # Define a length scale vector with one element per feature
+    length_scale = np.ones(len(SEL_FEATS))
+
     for noise in noise_s:
         for nu in nu_s:
             if noise == "Yes":
