@@ -22,6 +22,7 @@ from gpr import GPR
 from sklearn import preprocessing
 # Importing combinations from itertools for generating
 # combinations of elements
+from itertools import combinations
 from sklearn.gaussian_process import GaussianProcessRegressor
 from sklearn.gaussian_process.kernels import (ConstantKernel, Matern,
                                               WhiteKernel)
@@ -35,24 +36,28 @@ FNAME = FNAMES[0]
 CODE_NAME = re.search(r"WV\d+", FNAME).group(0) \
     if re.search(r"WV\d+", FNAME) else None
 
+year_ranges = {"test_range_1": [2015, 2016, 2017], "test_range_2": [2018, 2019, 2020]}
+test_years = year_ranges["test_range_1"]
+key_range_name = next(k for k, v in year_ranges.items() if v == test_years)
+
 # Flags
 # Put anything except True or False to have the target wo outliers
 OUTLIERS = True
 BEST_R2 = True
-BEST_LML = False
 SHOW_PLOTS = True
-SAVE_PLOTS = False
-SAVE_WORKSPACE = False
+SAVE_PLOTS = True
+SAVE_WORKSPACE = True
 
 # Directories to create
-DIR_PLOTS = "../plots/gpr/without_combinations/selected_feats_maxc"
-DIR_OUT_DATA = "../output_data/without_combinations/selected_feats_maxc"
-DIR_LOG_ACTIONS = "../log_actions/without_combinations/selected_feats_maxc"
+DIR_PLOTS = f"../plots/gpr/combined_feature_analysis/brute_force_selection/{key_range_name}/"
+DIR_GPR_OUT_DATA = f"../output_data/combined_feature_analysis/brute_force_selection/{key_range_name}/"
+DIR_LOG_ACTIONS = f"../log_actions/combined_feature_analysis/brute_force_selection/{key_range_name}/"
+DIR_RESULTS = f"../results/combined_feature_analysis/brute_force_selection/{key_range_name}/"
 
 # System Configuration: CPU Allocation and Data Chunking
 # Number of CPU cores used, impacting the speed and efficiency
 # of parallel processing.
-NUMBER_CPUS = 1
+NUMBER_CPUS = 8
 # Controls the size of data units processed at a time (per CPU),
 # affecting load balancing and processing efficiency in parallel tasks
 CHUNK_SIZE = None
@@ -61,31 +66,41 @@ CHUNK_SIZE = None
 # Load and filter the data
 if OUTLIERS is True:
     NICK_NAME = "w_outliers"
-    data = DataManager(xlsx_file_name=FNAME).filter_data()
+    data = DataManager(xlsx_file_name=FNAME).adding_month_numbers().reset_index(drop=True)
 elif OUTLIERS is False:
     NICK_NAME = "wo_outliers"
-    data = DataManager(xlsx_file_name=FNAME).iterative_cleaning(COL_ALL)
+    data = DataManager(xlsx_file_name=FNAME).iterative_cleaning(COL_ALL).reset_index(drop=True)
 else:
     NICK_NAME = "tar_wo_outliers"
-    data = DataManager(xlsx_file_name=FNAME).iterative_cleaning("Gesamt/Kopf")
+    data = DataManager(xlsx_file_name=FNAME).iterative_cleaning("Gesamt/Kopf").reset_index(drop=True)
 
-SEL_FEATS = [
-    "NS Monat",         # Monthly precipitation
-    "T Monat Mittel",   # Average temperature of the month
-    "T Max Monat",      # Maximum temperature of the month
-    "pot Evap",         # Potential evaporation
-    "klimat. WB",       # Climatic water balance
-    "pos. klimat. WB",  # Positive climatic water balance
-    "Heiße Tage",       # Number of hot days (peak temp. greater than
-                        # or equal to 30 °C)
-    "Sommertage",       # Number of summer days (peak temp. greater
-                        # than or equal to 25 °C)
-    "Eistage",          # Number of ice days
-    "T Min Monat"       # Minimum temperature of the month
-]
-# SEL_FEATS = selected_features(
-#    data, COL_TAR, COL_FEAT, prioritize_feature="T Monat Mittel"
-#)
+# SEL_FEATS = ["T Monat Mittel"]
+SEL_FEATS = selected_features(
+    data, COL_TAR, COL_FEAT, prioritize_feature="T Monat Mittel"
+)
+
+
+def col_combos(cols, min_len=1):
+    """
+    Generate combinations of input columns with varying lengths.
+    :param cols: LIST of input column indices
+    :param min_len: INT representing the minimum number of columns
+    to combine (Default is 1)
+    :return: A LIST of numpy arrays, each containing a combination
+    of column indices
+    """
+    # Determine the maximum number of columns that can be combined
+    max_len = len(cols)
+    # Initialize an empty list to hold the combinations of columns
+    col_feats = []
+    # Generate combinations for each length from min_len to max_len
+    for n in range(min_len, max_len + 1):
+        # Generate combinations of the current length and convert them
+        # to numpy arrays of type int8
+        for combo in combinations(cols, n):
+            col_feats.append(np.array(combo, dtype=np.int8))
+    # Return the list of column combinations
+    return col_feats
 
 
 def fit_and_test(iter_params):
@@ -97,6 +112,10 @@ def fit_and_test(iter_params):
     testing indices (np.array)
     :return: The parameter object with updated performance metrics
     """
+
+    start_logging(dir=DIR_LOG_ACTIONS,
+                  nick_name=NICK_NAME,
+                  code_name=CODE_NAME)
     try:
         # Unpack the tuple
         cnt_i = iter_params[0].idx  # Iteration counter
@@ -173,19 +192,33 @@ def main():
     # Record the initial time for tracking script duration
     init_time = time.time()
 
-    # Extraction of all input and output data
+    # Select the testing data based on the given test years
+    test_df = data[data["Jahr"].isin(test_years)]
+
+    # Define the training data by excluding the testing years
+    train_df = data[~data["Jahr"].isin(test_years)]
+
+    # Extract all features and target arrays for training and testing
+    x_train = np.array(train_df[SEL_FEATS])
+    y_train = np.array(train_df[COL_TAR])
+
+    x_test = np.array(test_df[SEL_FEATS])
+    y_test = np.array(test_df[COL_TAR])
+    y_mean_test = np.mean(y_test)
+
+    # Extract all features and target arrays
     x_all = np.array(data[SEL_FEATS])
     y_all = np.array(data[COL_TAR])
 
-    # Extraction of important data from the x-axis
-    x_indexes = np.arange(x_all.shape[0])  # X-axis indexes
-    x_indexes_train, x_indexes_test = split_data(x_indexes, 0.7)
+    # Find the exact positions (indexes) of the training and testing data in the original dataset
+    x_indexes_train = train_df.index.values  # Exact positions of the training years
+    x_indexes_test = test_df.index.values  # Exact positions of the testing years
     combined_index = np.arange(x_all.shape[0])
 
-    # Splitting training and test data
-    x_train, x_test = split_data(x_all, 0.7)
-    y_train, y_test = split_data(y_all, 0.7)
-    y_mean_test = np.mean(y_test)
+    number_cols = len(SEL_FEATS)  # Number of feature columns
+    indexes_cols = np.arange(number_cols)  # Array of column indices
+    # Generate combinations of input columns with varying lengths.
+    comb_feats = col_combos(indexes_cols)
 
     # List of the most popular scalers for preprocessing
     pop_scalers = [preprocessing.StandardScaler(),
@@ -213,32 +246,38 @@ def main():
     all_par_sets = []
     # Initialize the iteration counter
     counter = 0
-    # Iterate over each scaler within the scalers list
-    for scaler in scalers:
-        # Iterate over the noise switch (Yes/No)
-        for noise in noise_s:
-            for nu in nu_s:  # Iterate over each nu value
-                if noise == "Yes":  # If noise is to be added
-                    kernel = (ConstantKernel(constant_value=1.0,
-                                             constant_value_bounds=(0.1, 10.0))
-                              * Matern(nu=nu, length_scale=1.0,
-                                       length_scale_bounds=(1e-3, 1e3))
-                              + WhiteKernel(noise_level=1e-5,
-                                            noise_level_bounds=(1e-10, 1e1)))
-                else:  # If noise is not to be added
-                    kernel = (ConstantKernel(constant_value=1.0,
-                                             constant_value_bounds=(0.1, 10.0))
-                              * Matern(nu=nu, length_scale=1.0,
-                                       length_scale_bounds=(1e-3, 1e3)))
+    # Define a length scale vector with one element per feature
+    length_scale = np.ones(len(SEL_FEATS))
+    # Iterate over each combination of feature columns
+    for comb_feat in comb_feats:
+        selected_features = np.array(SEL_FEATS)[comb_feat]
+        x_selected = x_all[:, comb_feat]
+        # Iterate over each scaler within the scalers list
+        for scaler in scalers:
+            # Iterate over the noise switch (Yes/No)
+            for noise in noise_s:
+                for nu in nu_s:  # Iterate over each nu value
+                    if noise == "Yes":  # If noise is to be added
+                        kernel = (ConstantKernel(constant_value=1.0,
+                                                 constant_value_bounds=(0.1, 10.0))
+                                  * Matern(nu=nu, length_scale=1.0,
+                                           length_scale_bounds=(1e-3, 1e3))
+                                  + WhiteKernel(noise_level=1e-5,
+                                                noise_level_bounds=(1e-10, 1e1)))
+                    else:  # If noise is not to be added
+                        kernel = (ConstantKernel(constant_value=1.0,
+                                                 constant_value_bounds=(0.1, 10.0))
+                                  * Matern(nu=nu, length_scale=1.0,
+                                           length_scale_bounds=(1e-3, 1e3)))
 
-                all_par_sets.append((GPR(kernel=kernel, scaler=scaler,
-                                         feats=SEL_FEATS,
-                                         idx=counter),
-                                     x_all,
-                                     y_all, x_indexes_train,
-                                     x_indexes_test))
+                    all_par_sets.append((GPR(kernel=kernel, scaler=scaler,
+                                             feats=selected_features,
+                                             idx=counter),
+                                         x_selected,
+                                         y_all, x_indexes_train,
+                                         x_indexes_test))
 
-                counter += 1
+                    counter += 1
 
     results_iter = all_par_sets
 
@@ -254,43 +293,9 @@ def main():
             # Retrieve results from asynchronous processing
             # (i.e., objects of GPRPars())
             all_par_sets_updated = result.get()
-            # Extract LML scores from each parameter set
-            lml_scores = np.array([par_set.marg_lh
-                                   for par_set in all_par_sets_updated])
             # Extract R2 scores from each parameter set
             r2_test_scores = np.array([par_set.r2_test
                                        for par_set in all_par_sets_updated])
-            # Extract RMSE scores from each parameter set
-            rmse_test_scores = np.array([par_set.rmse_test
-                                         for par_set in all_par_sets_updated])
-            # Extract NRMSE scores from each parameter set
-            nrmse_test_scores = np.array([par_set.nrmse_test
-                                         for par_set in all_par_sets_updated])
-            # Extract MAE scores from each parameter set
-            mae_test_scores = np.array([par_set.mae_test
-                                        for par_set in all_par_sets_updated])
-            # Extract NMAE scores from each parameter set
-            nmae_test_scores = np.array([par_set.nmae_test
-                                        for par_set in all_par_sets_updated])
-
-            # Create a DataFrame with the results
-            result_df = pd.DataFrame({
-                "lh": lml_scores,
-                "r2": r2_test_scores,
-                "rmse": rmse_test_scores,
-                "nrmse": nrmse_test_scores,
-                "mae": mae_test_scores,
-                "nmae": nmae_test_scores,
-            })
-
-            # Round numerical values to 2 decimal places
-            result_df = result_df.round(2)
-
-            # Save DataFrame to a CSV file
-            create_directory(DIR_RESULTS)
-            result_df.to_csv(f"{DIR_RESULTS}/results_of_all_feats_{NICK_NAME}_"
-                             f"w_noise_in_{CODE_NAME}.csv", index=False)
-
         else:
             # Handle case where GPR approach failed
             warning_logger = logging.getLogger("warning_logger")
@@ -299,8 +304,6 @@ def main():
     # Get the best
     if BEST_R2:
         best_index = r2_test_scores.argmax()  # Find the index of the best R2 score
-    if BEST_LML:
-        best_index = lml_scores.argmax()  # Find the index of the best LML score
     # Get the parameter set corresponding to the best score
     best_par_set = all_par_sets_updated[best_index]
     # Log the total number of iterations
@@ -311,10 +314,6 @@ def main():
     if BEST_R2:
         # Log the best R2 score
         info_logger.info(f"Best R2 score: {r2_test_scores[best_index]}")
-        info_logger.info(best_par_set)  # Log the best parameter set
-    if BEST_LML:
-        # Log the best LML score
-        info_logger.info(f"Best LML score: {lml_scores[best_index]}")
         info_logger.info(best_par_set)  # Log the best parameter set
 
     # Extract and check results by re-computing without pipe
@@ -350,6 +349,20 @@ def main():
                    np.abs(best_par_set.nmae_test - nmae_test) > eps)
 
     if check_error:
+        # Create a DataFrame with the results
+        result_df = pd.DataFrame({
+            "lh": marg_lh,
+            "r2": r2_test,
+            "rmse": rmse_test,
+            "nrmse": nrmse_test,
+            "mae": mae_test,
+            "nmae": nmae_test,
+        })
+        # Round numerical values to 2 decimal places
+        result_df = result_df.round(2)
+        result_df.to_csv(f"{DIR_RESULTS}results_of_stratified_selection_{NICK_NAME}_"
+                         f"found_in_{CODE_NAME}.csv", index=False)
+
         info_logger = logging.getLogger("info_logger")
         info_logger.info("\nNew fit, result change, "
                          "difference > {eps}!")
@@ -359,6 +372,22 @@ def main():
         info_logger.info(f"NRMSE_test: {nrmse_test} %")
         info_logger.info(f"MAE_test: {mae_test}")
         info_logger.info(f"NMAE_test: {nmae_test} %")
+    else:
+        # Create a DataFrame with the results
+        result_df = pd.DataFrame({
+            "lh": best_par_set.marg_lh,
+            "r2": best_par_set.r2_test,
+            "rmse": best_par_set.rmse_test,
+            "nrmse": best_par_set.nrmse_test,
+            "mae": best_par_set.mae_test,
+            "nmae": best_par_set.nmae_test,
+        })
+        # Round numerical values to 2 decimal places
+        result_df = result_df.round(2)
+        # Save DataFrame to a CSV file
+        create_directory(DIR_RESULTS)
+        result_df.to_csv(f"{DIR_RESULTS}results_of_stratified_selection_{NICK_NAME}_"
+                         f"found_in_{CODE_NAME}.csv", index=False)
 
     # Record the end time of the approach
     end_time = time.time()
@@ -393,15 +422,15 @@ def main():
                      "best_gp": best_gp, "all_features": x_all,
                      "target": y_all, "best_scaler": best_scaler,
                      "all_par_sets_updated": all_par_sets_updated,
-                     "scores": r2_test_scores if BEST_R2 else lml_scores,
+                     "scores": r2_test_scores,
                      "x_indexes_train": x_indexes_train,
                      "x_indexes_test": x_indexes_test,
                      "time": total_time}
-        create_directory(DIR_OUT_DATA)
+        create_directory(DIR_GPR_OUT_DATA)
         # .pkl for Pickle files
-        path = (f"{DIR_OUT_DATA}/gpr_workspace_of_{best_feats}_{NICK_NAME}"
+        path = (f"{DIR_GPR_OUT_DATA}/gpr_workspace_of_{best_feats}_{NICK_NAME}"
                 f"_in_{CODE_NAME}.pkl")
-        info_logger.info(f"Writing output to {path}")
+        print(f"Writing output to {path}")
         # Open the file for writing in binary mode
         with open(path, "wb") as out_file:
             # Save the workspace to the .pkl file

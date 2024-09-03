@@ -16,7 +16,8 @@ COL_FEAT = [
     "Sommertage",       # Number of summer days (peak temp. greater
                         # than or equal to 25 °C)
     "Eistage",          # Number of ice days
-    "T Min Monat"       # Minimum temperature of the month
+    "T Min Monat",      # Minimum temperature of the month
+    # "Month Number"      # Number of the month
 ]
 
 UNIT_FEAT = [
@@ -29,7 +30,8 @@ UNIT_FEAT = [
     "[-]",
     "[-]",
     "[-]",
-    "[°C]"
+    "[°C]",
+    # "[-]"
 ]
 
 COL_ALL = [
@@ -45,7 +47,8 @@ COL_ALL = [
     "Sommertage",       # Number of summer days (peak temp. greater
                         # than or equal to 25 °C)
     "Eistage",          # Number of ice days
-    "T Min Monat"       # Minimum temperature of the month
+    "T Min Monat",      # Minimum temperature of the month
+    # "Month Number"      # Number of the month
 ]
 
 UNIT_ALL = [
@@ -59,7 +62,8 @@ UNIT_ALL = [
     "[-]",
     "[-]",
     "[-]",
-    "[°C]"
+    "[°C]",
+    # "[-]"
 ]
 
 FNAMES = [

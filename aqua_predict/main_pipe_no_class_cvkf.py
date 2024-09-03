@@ -90,9 +90,6 @@ if __name__ == "__main__":
             pipe = Pipeline([("scaler", scaler), ("gp", gp)])
 
             for fold, (train_index, test_index) in enumerate(kf.split(x_all)):
-                m_t_a = (test_index[0] + test_index[-1])/2
-                x_pos = m_t_a / len(np.arange(x_all.shape[0]))
-                print(x_pos)
                 x_train, x_test = x_all[train_index], x_all[test_index]
                 y_train, y_test = y_all[train_index], y_all[test_index]
                 y_mean_test = np.mean(y_test)

@@ -354,6 +354,21 @@ class DataManager(PlotBp, PlotCorr):
 
         return filtered_df
 
+    def adding_month_numbers(self):
+        """
+        Adds a new feature to the DataFrame based on month numbers.
+        :return: DATAFRAME with processed data containing also
+        the month numbers
+        """
+        num_rows = len(self.filter_data())
+        # Create the list of month numbers
+        num_months = list(range(1, 13)) * (num_rows // 12) + list(range(1, (num_rows % 12) + 1))
+        # Create a DataFrame from the month numbers
+        df = pd.DataFrame(num_months, columns=["Month Number"])
+        # Concatenate the original DataFrame with the new DataFrame
+        new_set_feats = pd.concat([self.filter_data(), df], axis=1)
+        return new_set_feats
+
     def iterative_cleaning(self, feature):
         """
          Iteratively cleans the data to remove outliers from the
@@ -363,7 +378,7 @@ class DataManager(PlotBp, PlotCorr):
         :return: PD.DATAFRAME containing the cleaned data
         """
         # Filter the initial data
-        data = self.filter_data()
+        data = self.adding_month_numbers()
 
         while True:
             initial_len = len(data)
@@ -434,7 +449,7 @@ if __name__ == "__main__":
     DIR_PAIRPLOTS = "../plots/pp/"
 
     # Flags
-    SHOW_BOXPLOTS = False
+    SHOW_BOXPLOTS = True
     SHOW_SCATTERPLOTS = False
     SHOW_TIMESERIES = False
     SHOW_CORR = False
@@ -448,35 +463,8 @@ if __name__ == "__main__":
     try:
         # Instantiate an object of the DataManager class
         data_handler = DataManager(xlsx_file_name=FNAME)
-        initial_data = data_handler.filter_data()
-        # Set the year limit
-        year_limit = 2017
+        initial_data = data_handler.adding_month_numbers()
 
-        trimmed_df = initial_data[initial_data["Jahr"] <= year_limit]
-        x_all = np.array(trimmed_df[COL_FEAT])
-        y_all = np.array(trimmed_df[COL_TAR])
-
-        # Splitting all data of training and test data by year
-        x_train_all, x_test_all = split_data_by_year(initial_data, "Jahr", (2010, 2015),
-                                                     (2016, year_limit))
-        y_train_all, y_test_all = split_data_by_year(initial_data, "Jahr", (2010, 2015),
-                                                     (2016, year_limit))
-
-        # Extraction of just important training and test data
-        x_train = np.array(x_train_all[COL_FEAT])
-        x_test = np.array(x_test_all[COL_FEAT])
-        y_train = np.array(y_train_all[COL_TAR])
-        y_test = np.array(y_test_all[COL_TAR])
-        print(x_train.shape)
-        print(x_test.shape)
-        print(y_train.shape)
-        print(y_test.shape)
-
-        # Extraction of important data from the x-axis
-        x_indexes_train = np.arange(x_train.shape[0])  # X-axis indexes
-        x_indexes_test = np.arange(x_test.shape[0])  # X-axis indexes
-
-        """
         wv_number = str(int(initial_data["WVU Nr. "].iloc[0]))
         wv_label = f"WV{wv_number}"
         # Uncomment if you only want to clean the target once (i.e. no iterative process)
@@ -499,8 +487,6 @@ if __name__ == "__main__":
                      "wo_outliers", SHOW_BOXPLOTS,
                      SHOW_SCATTERPLOTS, SHOW_TIMESERIES, SHOW_CORR,
                      SHOW_SEL_FEATS, SAVE_PLOT)
-        """
-
     except Exception as e:
         print(f"An error occurred: {e}")
 

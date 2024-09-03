@@ -13,6 +13,7 @@ import warnings
 from multiprocessing import Pool
 import numpy as np
 import pandas as pd
+
 from config import *
 from data import DataManager
 from fun import *
@@ -34,7 +35,7 @@ FNAME = FNAMES[0]
 CODE_NAME = re.search(r"WV\d+", FNAME).group(0) \
     if re.search(r"WV\d+", FNAME) else None
 
-year_ranges = {"test_range_1": [2015, 2016, 2017], "test_range_2:": [2018, 2019, 2020]}
+year_ranges = {"test_range_1": [2015, 2016, 2017], "test_range_2": [2018, 2019, 2020]}
 test_years = year_ranges["test_range_1"]
 key_range_name = next(k for k, v in year_ranges.items() if v == test_years)
 
@@ -43,19 +44,19 @@ key_range_name = next(k for k, v in year_ranges.items() if v == test_years)
 OUTLIERS = True
 BEST_R2 = True
 SHOW_PLOTS = True
-SAVE_PLOTS = True
-SAVE_WORKSPACE = True
+SAVE_PLOTS = False
+SAVE_WORKSPACE = False
 
 # Directories to create
-DIR_PLOTS = f"../plots/gpr/group_feature_analysis/all_feats/{key_range_name}/"
-DIR_GPR_OUT_DATA = f"../gpr_output_data/group_feature_analysis/all_feats/{key_range_name}/"
-DIR_LOG_ACTIONS = f"../log_actions/group_feature_analysis/all_feats/{key_range_name}/"
-DIR_RESULTS = f"../results/group_feature_analysis/all_feats/{key_range_name}/"
+DIR_PLOTS = f"../plots/gpr/group_feature_analysis/selected_feats/{key_range_name}/"
+DIR_GPR_OUT_DATA = f"../gpr_output_data/group_feature_analysis/selected_feats/{key_range_name}/"
+DIR_LOG_ACTIONS = f"../log_actions/group_feature_analysis/selected_feats/{key_range_name}/"
+DIR_RESULTS = f"../results/group_feature_analysis/selected_feats/{key_range_name}/"
 
 # System Configuration: CPU Allocation and Data Chunking
 # Number of CPU cores used, impacting the speed and efficiency
 # of parallel processing.
-NUMBER_CPUS = 8
+NUMBER_CPUS = 1
 # Controls the size of data units processed at a time (per CPU),
 # affecting load balancing and processing efficiency in parallel tasks
 CHUNK_SIZE = None
@@ -64,28 +65,17 @@ CHUNK_SIZE = None
 # Load and filter the data
 if OUTLIERS is True:
     NICK_NAME = "w_outliers"
-    data = DataManager(xlsx_file_name=FNAME).filter_data()
+    data = DataManager(xlsx_file_name=FNAME).adding_month_numbers().reset_index(drop=True)
 elif OUTLIERS is False:
     NICK_NAME = "wo_outliers"
-    data = DataManager(xlsx_file_name=FNAME).iterative_cleaning(COL_ALL)
+    data = DataManager(xlsx_file_name=FNAME).iterative_cleaning(COL_ALL).reset_index(drop=True)
 else:
     NICK_NAME = "tar_wo_outliers"
-    data = DataManager(xlsx_file_name=FNAME).iterative_cleaning("Gesamt/Kopf")
+    data = DataManager(xlsx_file_name=FNAME).iterative_cleaning("Gesamt/Kopf").reset_index(drop=True)
 
-SEL_FEATS = [
-    "NS Monat",         # Monthly precipitation
-    "T Monat Mittel",   # Average temperature of the month
-    "T Max Monat",      # Maximum temperature of the month
-    "pot Evap",         # Potential evaporation
-    "klimat. WB",       # Climatic water balance
-    "pos. klimat. WB",  # Positive climatic water balance
-    "Heiße Tage",       # Number of hot days (peak temp. greater than
-                        # or equal to 30 °C)
-    "Sommertage",       # Number of summer days (peak temp. greater
-                        # than or equal to 25 °C)
-    "Eistage",          # Number of ice days
-    "T Min Monat"       # Minimum temperature of the month
-]
+SEL_FEATS = selected_features(
+    data, COL_TAR, COL_FEAT, prioritize_feature="T Monat Mittel"
+)
 
 
 def fit_and_test(iter_params):
@@ -97,9 +87,8 @@ def fit_and_test(iter_params):
     testing indices (np.array)
     :return: The parameter object with updated performance metrics
     """
-
     start_logging(dir=DIR_LOG_ACTIONS,
-                  nick_name=f"of_all_feats_{NICK_NAME}_wo_noise",
+                  nick_name=NICK_NAME,
                   code_name=CODE_NAME)
     try:
         # Unpack the tuple
@@ -167,7 +156,7 @@ def fit_and_test(iter_params):
 
 
 @logging_decorator(dir=DIR_LOG_ACTIONS,
-                   nick_name=f"of_all_feats_{NICK_NAME}_wo_noise",
+                   nick_name=NICK_NAME,
                    code_name=CODE_NAME)
 def main():
     """
@@ -215,6 +204,9 @@ def main():
     scalers = [pop_scalers[0]]
     # scalers = pop_scalers
 
+    # List to toggle noise addition
+    noise_s = ["Yes", "No"]
+
     # nu recommended values for the Matern kernel
     # For nu=inf, the kernel becomes equivalent to the RBF kernel
     nu_s = [0.5, 1.5, 2.5, np.inf]
@@ -227,19 +219,30 @@ def main():
     length_scale = np.ones(len(SEL_FEATS))
     # Iterate over each scaler within the scalers list
     for scaler in scalers:
-        for nu in nu_s:  # Iterate over each nu value
-            kernel = (ConstantKernel(constant_value=1.0,
-                                     constant_value_bounds=(0.1, 10.0))
-                      * Matern(nu=nu, length_scale=1.0,
-                               length_scale_bounds=(1e-3, 1e3)))
+        # Iterate over the noise switch (Yes/No)
+        for noise in noise_s:
+            for nu in nu_s:  # Iterate over each nu value
+                if noise == "Yes":  # If noise is to be added
+                    kernel = (ConstantKernel(constant_value=1.0,
+                                             constant_value_bounds=(0.1, 10.0))
+                              * Matern(nu=nu, length_scale=1.0,
+                                       length_scale_bounds=(1e-3, 1e3))
+                              + WhiteKernel(noise_level=1e-5,
+                                            noise_level_bounds=(1e-10, 1e1)))
+                else:  # If noise is not to be added
+                    kernel = (ConstantKernel(constant_value=1.0,
+                                             constant_value_bounds=(0.1, 10.0))
+                              * Matern(nu=nu, length_scale=1.0,
+                                       length_scale_bounds=(1e-3, 1e3)))
 
-            all_par_sets.append((GPR(kernel=kernel, scaler=scaler,
-                                     feats=SEL_FEATS,
-                                     idx=counter),
-                                 x_all,
-                                 y_all, x_indexes_train,
-                                 x_indexes_test))
-            counter += 1
+                all_par_sets.append((GPR(kernel=kernel, scaler=scaler,
+                                         feats=SEL_FEATS,
+                                         idx=counter),
+                                     x_all,
+                                     y_all, x_indexes_train,
+                                     x_indexes_test))
+
+                counter += 1
 
     results_iter = all_par_sets
 
@@ -255,43 +258,9 @@ def main():
             # Retrieve results from asynchronous processing
             # (i.e., objects of GPRPars())
             all_par_sets_updated = result.get()
-            # Extract LML scores from each parameter set
-            lml_scores = np.array([par_set.marg_lh
-                                   for par_set in all_par_sets_updated])
             # Extract R2 scores from each parameter set
             r2_test_scores = np.array([par_set.r2_test
                                        for par_set in all_par_sets_updated])
-            # Extract RMSE scores from each parameter set
-            rmse_test_scores = np.array([par_set.rmse_test
-                                         for par_set in all_par_sets_updated])
-            # Extract NRMSE scores from each parameter set
-            nrmse_test_scores = np.array([par_set.nrmse_test
-                                         for par_set in all_par_sets_updated])
-            # Extract MAE scores from each parameter set
-            mae_test_scores = np.array([par_set.mae_test
-                                        for par_set in all_par_sets_updated])
-            # Extract NMAE scores from each parameter set
-            nmae_test_scores = np.array([par_set.nmae_test
-                                        for par_set in all_par_sets_updated])
-
-            # Create a DataFrame with the results
-            result_df = pd.DataFrame({
-                "lh": lml_scores,
-                "r2": r2_test_scores,
-                "rmse": rmse_test_scores,
-                "nrmse": nrmse_test_scores,
-                "mae": mae_test_scores,
-                "nmae": nmae_test_scores,
-            })
-
-            # Round numerical values to 2 decimal places
-            result_df = result_df.round(2)
-
-            # Save DataFrame to a CSV file
-            create_directory(DIR_RESULTS)
-            result_df.to_csv(f"{DIR_RESULTS}results_of_all_feats_{NICK_NAME}_"
-                             f"wo_noise_in_{CODE_NAME}.csv", index=False)
-
         else:
             # Handle case where GPR approach failed
             warning_logger = logging.getLogger("warning_logger")
@@ -345,6 +314,19 @@ def main():
                    np.abs(best_par_set.nmae_test - nmae_test) > eps)
 
     if check_error:
+        # Create a DataFrame with the results
+        result_df = pd.DataFrame({
+            "lh": marg_lh,
+            "r2": r2_test,
+            "rmse": rmse_test,
+            "nrmse": nrmse_test,
+            "mae": mae_test,
+            "nmae": nmae_test,
+        })
+        # Round numerical values to 2 decimal places
+        result_df = result_df.round(2)
+        result_df.to_csv(f"{DIR_RESULTS}results_of_{best_feats}_{NICK_NAME}_"
+                         f"found_in_{CODE_NAME}.csv", index=False)
         info_logger = logging.getLogger("info_logger")
         info_logger.info("\nNew fit, result change, "
                          "difference > {eps}!")
@@ -354,6 +336,22 @@ def main():
         info_logger.info(f"NRMSE_test: {nrmse_test} %")
         info_logger.info(f"MAE_test: {mae_test}")
         info_logger.info(f"NMAE_test: {nmae_test} %")
+    else:
+        # Create a DataFrame with the results
+        result_df = pd.DataFrame({
+            "lh": best_par_set.marg_lh,
+            "r2": best_par_set.r2_test,
+            "rmse": best_par_set.rmse_test,
+            "nrmse": best_par_set.nrmse_test,
+            "mae": best_par_set.mae_test,
+            "nmae": best_par_set.nmae_test,
+        })
+        # Round numerical values to 2 decimal places
+        result_df = result_df.round(2)
+        # Save DataFrame to a CSV file
+        create_directory(DIR_RESULTS)
+        result_df.to_csv(f"{DIR_RESULTS}results_of_{best_feats}_{NICK_NAME}_"
+                         f"found_in_{CODE_NAME}.csv", index=False)
 
     # Record the end time of the approach
     end_time = time.time()
@@ -377,8 +375,8 @@ def main():
                          r2=r2_test)
         if SAVE_PLOTS:
             create_directory(DIR_PLOTS)
-            path = (f"{DIR_PLOTS}best_gpr_of_all_feats_{NICK_NAME}_"
-                    f"wo_noise_found_in_{CODE_NAME}.png")
+            path = (f"{DIR_PLOTS}/best_gpr_of_{best_feats}_{NICK_NAME}_"
+                    f"found_in_{CODE_NAME}.png")
             plotter.plot(y_train, y_test, y_mean, y_cov,
                          x_indexes_train, x_indexes_test, combined_index,
                          r2=r2_test, file_name=path)
@@ -394,8 +392,8 @@ def main():
                      "time": total_time}
         create_directory(DIR_GPR_OUT_DATA)
         # .pkl for Pickle files
-        path = (f"{DIR_GPR_OUT_DATA}gpr_workspace_of_all_feats_{NICK_NAME}_"
-                f"wo_noise_in_{CODE_NAME}.pkl")
+        path = (f"{DIR_GPR_OUT_DATA}/gpr_workspace_of_{best_feats}_{NICK_NAME}"
+                f"_in_{CODE_NAME}.pkl")
         print(f"Writing output to {path}")
         # Open the file for writing in binary mode
         with open(path, "wb") as out_file:
@@ -406,4 +404,3 @@ def main():
 if __name__ == "__main__":
 
     main()
-

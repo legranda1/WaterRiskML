@@ -1,5 +1,6 @@
 import matplotlib.pyplot as plt
 import matplotlib.cm as cm
+import matplotlib.ticker as ticker
 import numpy as np
 import pandas as pd
 import seaborn as sns
@@ -289,6 +290,12 @@ class PlotGPR:
                                y_mean + self.std * np.sqrt(np.diag(y_cov)),
                                color="C0", alpha=0.3, zorder=8)
 
+        # Adjust y-axis padding to be 20% of the data range
+        self.axes.margins(y=0.20)
+
+        # Automatically round y-axis limits to nice values
+        self.axes.yaxis.set_major_locator(ticker.MaxNLocator(integer=True))
+
         # Add a gray background between the test data region
         self.axes.axvspan(x_indexes_test[0], x_indexes_test[-1],
                           color="gray", alpha=0.175, zorder=0)
@@ -308,7 +315,6 @@ class PlotGPR:
         padding = 0.01 * (x_indexes[-1] - x_indexes[0])
         # Set the x-axis limits with padding
         self.axes.set_xlim([x_indexes[0] - padding, x_indexes[-1] + padding])
-        self.axes.set_ylim(40, 200)
 
         # Customize the plot
         self.axes.grid(True)

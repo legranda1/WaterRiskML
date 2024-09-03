@@ -34,7 +34,7 @@ FNAME = FNAMES[0]
 CODE_NAME = re.search(r"WV\d+", FNAME).group(0) \
     if re.search(r"WV\d+", FNAME) else None
 
-year_ranges = {"test_range_1": [2015, 2016, 2017], "test_range_2:": [2018, 2019, 2020]}
+year_ranges = {"test_range_1": [2015, 2016, 2017], "test_range_2": [2018, 2019, 2020]}
 test_years = year_ranges["test_range_1"]
 key_range_name = next(k for k, v in year_ranges.items() if v == test_years)
 
@@ -47,10 +47,10 @@ SAVE_PLOTS = True
 SAVE_WORKSPACE = True
 
 # Directories to create
-DIR_PLOTS = f"../plots/gpr/group_feature_analysis/all_feats/{key_range_name}/"
-DIR_GPR_OUT_DATA = f"../gpr_output_data/group_feature_analysis/all_feats/{key_range_name}/"
-DIR_LOG_ACTIONS = f"../log_actions/group_feature_analysis/all_feats/{key_range_name}/"
-DIR_RESULTS = f"../results/group_feature_analysis/all_feats/{key_range_name}/"
+DIR_PLOTS = f"../plots/gpr/individual_feature_analysis/1_NS_Monat/{key_range_name}/"
+DIR_GPR_OUT_DATA = f"../gpr_output_data/individual_feature_analysis/1_NS_Monat/{key_range_name}/"
+DIR_LOG_ACTIONS = f"../log_actions/individual_feature_analysis/1_NS_Monat/{key_range_name}/"
+DIR_RESULTS = f"../results/individual_feature_analysis/1_NS_Monat/{key_range_name}/"
 
 # System Configuration: CPU Allocation and Data Chunking
 # Number of CPU cores used, impacting the speed and efficiency
@@ -64,7 +64,7 @@ CHUNK_SIZE = None
 # Load and filter the data
 if OUTLIERS is True:
     NICK_NAME = "w_outliers"
-    data = DataManager(xlsx_file_name=FNAME).filter_data().reset_index(drop=True)
+    data = DataManager(xlsx_file_name=FNAME).adding_month_numbers().reset_index(drop=True)
 elif OUTLIERS is False:
     NICK_NAME = "wo_outliers"
     data = DataManager(xlsx_file_name=FNAME).iterative_cleaning(COL_ALL).reset_index(drop=True)
@@ -74,17 +74,18 @@ else:
 
 SEL_FEATS = [
     "NS Monat",         # Monthly precipitation
-    "T Monat Mittel",   # Average temperature of the month
-    "T Max Monat",      # Maximum temperature of the month
-    "pot Evap",         # Potential evaporation
-    "klimat. WB",       # Climatic water balance
-    "pos. klimat. WB",  # Positive climatic water balance
-    "Heiße Tage",       # Number of hot days (peak temp. greater than
+    # "T Monat Mittel",   # Average temperature of the month
+    # "T Max Monat",      # Maximum temperature of the month
+    # "pot Evap",         # Potential evaporation
+    # "klimat. WB",       # Climatic water balance
+    # "pos. klimat. WB",  # Positive climatic water balance
+    # "Heiße Tage",       # Number of hot days (peak temp. greater than
                         # or equal to 30 °C)
-    "Sommertage",       # Number of summer days (peak temp. greater
+    # "Sommertage",       # Number of summer days (peak temp. greater
                         # than or equal to 25 °C)
-    "Eistage",          # Number of ice days
-    "T Min Monat"       # Minimum temperature of the month
+    # "Eistage",          # Number of ice days
+    # "T Min Monat",      # Minimum temperature of the month
+    # "Month Number"      # Number of the month
 ]
 
 
@@ -99,7 +100,7 @@ def fit_and_test(iter_params):
     """
 
     start_logging(dir=DIR_LOG_ACTIONS,
-                  nick_name=f"of_all_feats_{NICK_NAME}_w_noise",
+                  nick_name=f"of_{SEL_FEATS}_{NICK_NAME}_wo_noise",
                   code_name=CODE_NAME)
     try:
         # Unpack the tuple
@@ -167,7 +168,7 @@ def fit_and_test(iter_params):
 
 
 @logging_decorator(dir=DIR_LOG_ACTIONS,
-                   nick_name=f"of_all_feats_{NICK_NAME}_w_noise",
+                   nick_name=f"of_{SEL_FEATS}_{NICK_NAME}_wo_noise",
                    code_name=CODE_NAME)
 def main():
     """
@@ -223,9 +224,9 @@ def main():
     all_par_sets = []
     # Initialize the iteration counter
     counter = 0
+    # Iterate over each scaler within the scalers list
     # Define a length scale vector with one element per feature
     length_scale = np.ones(len(SEL_FEATS))
-    # Iterate over each scaler within the scalers list
     for scaler in scalers:
         for nu in nu_s:  # Iterate over each nu value
             kernel = (ConstantKernel(constant_value=1.0,
@@ -291,8 +292,8 @@ def main():
 
             # Save DataFrame to a CSV file
             create_directory(DIR_RESULTS)
-            result_df.to_csv(f"{DIR_RESULTS}results_of_all_feats_{NICK_NAME}_"
-                             f"w_noise_in_{CODE_NAME}.csv", index=False)
+            result_df.to_csv(f"{DIR_RESULTS}/results_of_{SEL_FEATS}_{NICK_NAME}_"
+                             f"wo_noise_in_{CODE_NAME}.csv", index=False)
 
         else:
             # Handle case where GPR approach failed
@@ -308,7 +309,7 @@ def main():
     info_logger = logging.getLogger("info_logger")
     info_logger.info(f"\nTotal number of iterations: {counter}")
     # Log the index of the best iteration
-    info_logger.info(f"Best iteration: {best_index + 1}")
+    info_logger.info(f"Best iteration: {best_index}")
     if BEST_R2:
         # Log the best R2 score
         info_logger.info(f"Best R2 score: {r2_test_scores[best_index]}")
@@ -377,11 +378,10 @@ def main():
             plotter.plot(y_train, y_test, y_mean, y_cov,
                          x_indexes_train, x_indexes_test, combined_index,
                          r2=r2_test)
-
         if SAVE_PLOTS:
             create_directory(DIR_PLOTS)
-            path = (f"{DIR_PLOTS}best_gpr_of_all_feats_{NICK_NAME}_"
-                    f"w_noise_found_in_{CODE_NAME}.png")
+            path = (f"{DIR_PLOTS}best_gpr_of_{best_feats}_{NICK_NAME}_"
+                    f"wo_noise_found_in_{CODE_NAME}.png")
             plotter.plot(y_train, y_test, y_mean, y_cov,
                          x_indexes_train, x_indexes_test, combined_index,
                          r2=r2_test, file_name=path)
@@ -397,14 +397,16 @@ def main():
                      "time": total_time}
         create_directory(DIR_GPR_OUT_DATA)
         # .pkl for Pickle files
-        path = (f"{DIR_GPR_OUT_DATA}gpr_workspace_of_all_feats_{NICK_NAME}_"
-                f"w_noise_in_{CODE_NAME}.pkl")
+        path = (f"{DIR_GPR_OUT_DATA}gpr_workspace_of_{best_feats}_{NICK_NAME}_"
+                f"wo_noise_in_{CODE_NAME}.pkl")
         print(f"Writing output to {path}")
         # Open the file for writing in binary mode
         with open(path, "wb") as out_file:
             # Save the workspace to the .pkl file
             pickle.dump(workspace, out_file)
 
+
 if __name__ == "__main__":
 
     main()
+
