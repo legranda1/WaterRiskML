@@ -50,7 +50,7 @@ SAVE_WORKSPACE = True
 
 # Directories to create
 DIR_PLOTS = f"../plots/gpr/combined_feature_analysis/brute_force_selection/{key_range_name}/"
-DIR_GPR_OUT_DATA = f"../output_data/combined_feature_analysis/brute_force_selection/{key_range_name}/"
+DIR_GPR_OUT_DATA = f"../gpr_output_data/combined_feature_analysis/brute_force_selection/{key_range_name}/"
 DIR_LOG_ACTIONS = f"../log_actions/combined_feature_analysis/brute_force_selection/{key_range_name}/"
 DIR_RESULTS = f"../results/combined_feature_analysis/brute_force_selection/{key_range_name}/"
 
@@ -81,10 +81,8 @@ SEL_FEATS = [
     "pot Evap",         # Potential evaporation
     "klimat. WB",       # Climatic water balance
     "pos. klimat. WB",  # Positive climatic water balance
-    "Heiße Tage",       # Number of hot days (peak temp. greater than
-                        # or equal to 30 °C)
-    "Sommertage",       # Number of summer days (peak temp. greater
-                        # than or equal to 25 °C)
+    "Heiße Tage",       # Number of hot days (peak temp. greater than or equal to 30 °C)
+    "Sommertage",       # Number of summer days (peak temp. greater than or equal to 25 °C)
     "Eistage",          # Number of ice days
     "T Min Monat",      # Minimum temperature of the month
     # "Month Number"      # Number of the month
@@ -368,7 +366,7 @@ def main():
             "nrmse": nrmse_test,
             "mae": mae_test,
             "nmae": nmae_test,
-        })
+        }, index=[0])
         # Round numerical values to 2 decimal places
         result_df = result_df.round(2)
         result_df.to_csv(f"{DIR_RESULTS}results_of_brute_force_{NICK_NAME}_"
@@ -392,7 +390,7 @@ def main():
             "nrmse": best_par_set.nrmse_test,
             "mae": best_par_set.mae_test,
             "nmae": best_par_set.nmae_test,
-        })
+        }, index=[0])
         # Round numerical values to 2 decimal places
         result_df = result_df.round(2)
         # Save DataFrame to a CSV file
@@ -422,7 +420,7 @@ def main():
                          r2=r2_test)
         if SAVE_PLOTS:
             create_directory(DIR_PLOTS)
-            path = (f"{DIR_PLOTS}/best_gpr_of_{best_feats}_{NICK_NAME}_"
+            path = (f"{DIR_PLOTS}best_gpr_of_brute_force_{NICK_NAME}_"
                     f"found_in_{CODE_NAME}.png")
             plotter.plot(y_train, y_test, y_mean, y_cov,
                          x_indexes_train, x_indexes_test, combined_index,
@@ -439,8 +437,8 @@ def main():
                      "time": total_time}
         create_directory(DIR_GPR_OUT_DATA)
         # .pkl for Pickle files
-        path = (f"{DIR_GPR_OUT_DATA}/gpr_workspace_of_{best_feats}_{NICK_NAME}"
-                f"_in_{CODE_NAME}.pkl")
+        path = (f"{DIR_GPR_OUT_DATA}gpr_workspace_of_brute_force_{NICK_NAME}"
+                f"_found_in_{CODE_NAME}.pkl")
         print(f"Writing output to {path}")
         # Open the file for writing in binary mode
         with open(path, "wb") as out_file:
