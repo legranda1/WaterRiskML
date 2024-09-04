@@ -47,10 +47,10 @@ SAVE_PLOTS = True
 SAVE_WORKSPACE = True
 
 # Directories to create
-DIR_PLOTS = f"../plots/gpr/individual_feature_analysis/2_T_Monat_Mittel/{key_range_name}/"
-DIR_GPR_OUT_DATA = f"../gpr_output_data/individual_feature_analysis/2_T_Monat_Mittel/{key_range_name}/"
-DIR_LOG_ACTIONS = f"../log_actions/individual_feature_analysis/2_T_Monat_Mittel/{key_range_name}/"
-DIR_RESULTS = f"../results/individual_feature_analysis/2_T_Monat_Mittel/{key_range_name}/"
+DIR_PLOTS = f"../plots/gpr/individual_feature_analysis/1_NS_Monat/{key_range_name}/"
+DIR_GPR_OUT_DATA = f"../gpr_output_data/individual_feature_analysis/1_NS_Monat/{key_range_name}/"
+DIR_LOG_ACTIONS = f"../log_actions/individual_feature_analysis/1_NS_Monat/{key_range_name}/"
+DIR_RESULTS = f"../results/individual_feature_analysis/1_NS_Monat/{key_range_name}/"
 
 # System Configuration: CPU Allocation and Data Chunking
 # Number of CPU cores used, impacting the speed and efficiency
@@ -73,16 +73,14 @@ else:
     data = DataManager(xlsx_file_name=FNAME).iterative_cleaning("Gesamt/Kopf").reset_index(drop=True)
 
 SEL_FEATS = [
-    # "NS Monat",         # Monthly precipitation
-    "T Monat Mittel",   # Average temperature of the month
+    "NS Monat",         # Monthly precipitation
+    # "T Monat Mittel",   # Average temperature of the month
     # "T Max Monat",      # Maximum temperature of the month
     # "pot Evap",         # Potential evaporation
     # "klimat. WB",       # Climatic water balance
     # "pos. klimat. WB",  # Positive climatic water balance
-    # "Heiße Tage",       # Number of hot days (peak temp. greater than
-                        # or equal to 30 °C)
-    # "Sommertage",       # Number of summer days (peak temp. greater
-                        # than or equal to 25 °C)
+    # "Heiße Tage",       # Number of hot days (peak temp. greater than or equal to 30 °C)
+    # "Sommertage",       # Number of summer days (peak temp. greater than or equal to 25 °C)
     # "Eistage",          # Number of ice days
     # "T Min Monat",      # Minimum temperature of the month
     # "Month Number"      # Number of the month
