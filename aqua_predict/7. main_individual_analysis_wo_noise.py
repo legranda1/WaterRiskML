@@ -22,8 +22,7 @@ from sklearn import preprocessing
 # Importing combinations from itertools for generating
 # combinations of elements
 from sklearn.gaussian_process import GaussianProcessRegressor
-from sklearn.gaussian_process.kernels import (ConstantKernel, Matern,
-                                              WhiteKernel)
+from sklearn.gaussian_process.kernels import ConstantKernel, Matern
 from sklearn.metrics import root_mean_squared_error, mean_absolute_error
 from sklearn.exceptions import ConvergenceWarning
 
@@ -230,9 +229,7 @@ def main():
             kernel = (ConstantKernel(constant_value=1.0,
                                      constant_value_bounds=(0.1, 10.0))
                       * Matern(nu=nu, length_scale=1.0,
-                               length_scale_bounds=(1e-3, 1e3))
-                      + WhiteKernel(noise_level=1e-5,
-                                    noise_level_bounds=(1e-10, 1e1)))
+                               length_scale_bounds=(1e-3, 1e3)))
 
             all_par_sets.append((GPR(kernel=kernel, scaler=scaler,
                                      feats=SEL_FEATS,
@@ -407,4 +404,3 @@ def main():
 if __name__ == "__main__":
 
     main()
-

@@ -172,7 +172,7 @@ def plot_pairplot(data, feat1=None, feat2=None, file_name=None, path=None):
     """
     corr_matrix = data[[feat1] + feat2]
     pp = PlotCorr(corr_matrix, title=f"Correlation pairplot of {file_name}",
-                  fig_size=(20, 10), dpi=150)
+                  fig_size=(20, 10), dpi=350)
     if path:
         return pp.plot_pp(path)
     else:
@@ -449,11 +449,11 @@ if __name__ == "__main__":
     DIR_PAIRPLOTS = "../plots/pp/"
 
     # Flags
-    SHOW_BOXPLOTS = True
+    SHOW_BOXPLOTS = False
     SHOW_SCATTERPLOTS = False
     SHOW_TIMESERIES = False
     SHOW_CORR = False
-    SHOW_SEL_FEATS = True
+    SHOW_SEL_FEATS = False
     SAVE_PLOT = False
 
     # For scatter plots

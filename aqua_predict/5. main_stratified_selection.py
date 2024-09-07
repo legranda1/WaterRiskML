@@ -49,10 +49,10 @@ SAVE_PLOTS = True
 SAVE_WORKSPACE = True
 
 # Directories to create
-DIR_PLOTS = f"../plots/gpr/combined_feature_analysis/brute_force_selection/{key_range_name}/"
-DIR_GPR_OUT_DATA = f"../gpr_output_data/combined_feature_analysis/brute_force_selection/{key_range_name}/"
-DIR_LOG_ACTIONS = f"../log_actions/combined_feature_analysis/brute_force_selection/{key_range_name}/"
-DIR_RESULTS = f"../results/combined_feature_analysis/brute_force_selection/{key_range_name}/"
+DIR_PLOTS = f"../plots/gpr/combined_feature_analysis/stratified_selection/{key_range_name}/"
+DIR_GPR_OUT_DATA = f"../gpr_output_data/combined_feature_analysis/stratified_selection/{key_range_name}/"
+DIR_LOG_ACTIONS = f"../log_actions/combined_feature_analysis/stratified_selection/{key_range_name}/"
+DIR_RESULTS = f"../results/combined_feature_analysis/stratified_selection/{key_range_name}/"
 
 # System Configuration: CPU Allocation and Data Chunking
 # Number of CPU cores used, impacting the speed and efficiency
@@ -74,7 +74,7 @@ else:
     NICK_NAME = "tar_wo_outliers"
     data = DataManager(xlsx_file_name=FNAME).iterative_cleaning("Gesamt/Kopf").reset_index(drop=True)
 
-# SEL_FEATS = ["T Monat Mittel"]
+
 SEL_FEATS = selected_features(
     data, COL_TAR, COL_FEAT, prioritize_feature="T Monat Mittel"
 )

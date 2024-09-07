@@ -20,8 +20,6 @@ from fun import *
 from plot import PlotGPR
 from gpr import GPR
 from sklearn import preprocessing
-# Importing combinations from itertools for generating
-# combinations of elements
 from sklearn.gaussian_process import GaussianProcessRegressor
 from sklearn.gaussian_process.kernels import (ConstantKernel, Matern,
                                               WhiteKernel)
@@ -44,8 +42,8 @@ key_range_name = next(k for k, v in year_ranges.items() if v == test_years)
 OUTLIERS = True
 BEST_R2 = True
 SHOW_PLOTS = True
-SAVE_PLOTS = False
-SAVE_WORKSPACE = False
+SAVE_PLOTS = True
+SAVE_WORKSPACE = True
 
 # Directories to create
 DIR_PLOTS = f"../plots/gpr/group_feature_analysis/selected_feats/{key_range_name}/"
@@ -56,7 +54,7 @@ DIR_RESULTS = f"../results/group_feature_analysis/selected_feats/{key_range_name
 # System Configuration: CPU Allocation and Data Chunking
 # Number of CPU cores used, impacting the speed and efficiency
 # of parallel processing.
-NUMBER_CPUS = 1
+NUMBER_CPUS = 8
 # Controls the size of data units processed at a time (per CPU),
 # affecting load balancing and processing efficiency in parallel tasks
 CHUNK_SIZE = None
@@ -322,7 +320,7 @@ def main():
             "nrmse": nrmse_test,
             "mae": mae_test,
             "nmae": nmae_test,
-        })
+        }, index=[0])
         # Round numerical values to 2 decimal places
         result_df = result_df.round(2)
         result_df.to_csv(f"{DIR_RESULTS}results_of_{best_feats}_{NICK_NAME}_"
@@ -345,7 +343,7 @@ def main():
             "nrmse": best_par_set.nrmse_test,
             "mae": best_par_set.mae_test,
             "nmae": best_par_set.nmae_test,
-        })
+        }, index=[0])
         # Round numerical values to 2 decimal places
         result_df = result_df.round(2)
         # Save DataFrame to a CSV file
