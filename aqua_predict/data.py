@@ -110,7 +110,7 @@ def plot_boxplot(feats, units, data, file_name, path=None):
     :param path: STR with the name of the path to save the plot
     :return: A boxplot object
     """
-    boxplot = PlotBp(data, title=f"Boxplot of {file_name}",
+    boxplot = PlotBp(data, title="",
                      ylabel="Ranges", fig_size=(15, 8),
                      dpi=250)
     if path:
@@ -152,7 +152,7 @@ def plot_heatmap(data, feat1=None, feat2=None, file_name=None, path=None):
     :return: A heatmap
     """
     corr_matrix = data[[feat1] + feat2].corr()
-    hm = PlotCorr(corr_matrix, title=f"Correlation heatmap of {file_name}",
+    hm = PlotCorr(corr_matrix, title="",
                   fig_size=(8, 6), dpi=150)
     if path:
         return hm.plot_hm(path)
@@ -171,7 +171,7 @@ def plot_pairplot(data, feat1=None, feat2=None, file_name=None, path=None):
     :return: A pairplot
     """
     corr_matrix = data[[feat1] + feat2]
-    pp = PlotCorr(corr_matrix, title=f"Correlation pairplot of {file_name}",
+    pp = PlotCorr(corr_matrix, title="",
                   fig_size=(20, 10), dpi=350)
     if path:
         return pp.plot_pp(path)
@@ -434,7 +434,7 @@ if __name__ == "__main__":
     init_time = time.time()
 
     # File names
-    FNAME = FNAMES[0]
+    FNAME = FNAMES[2]
 
     # Parameter(s) to investigate
     # FEAT = [COL_TAR, UNIT_TAR]
@@ -453,7 +453,7 @@ if __name__ == "__main__":
     SHOW_SCATTERPLOTS = False
     SHOW_TIMESERIES = False
     SHOW_CORR = False
-    SHOW_SEL_FEATS = False
+    SHOW_SEL_FEATS = True
     SAVE_PLOT = False
 
     # For scatter plots

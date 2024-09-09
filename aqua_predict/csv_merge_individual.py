@@ -4,6 +4,15 @@ from fun import create_directory
 from itertools import product  # To easily generate combinations of outliers, noise, and dataset
 
 
+def format_values(series):
+    """
+    Formats numerical values in a Pandas Series to two decimal places.
+    :param series: Pandas Series with numerical values.
+    :return: Series with values formatted to two decimal places.
+    """
+    return series.map(lambda x: f"{x:.2f}" if isinstance(x, (int, float)) else x)
+
+
 def extract_and_merge_column_from_csvs(csv_paths, column_name, output_csv, output_dir):
     """
     Extracts a specific column from multiple CSV files and merges them into a single CSV file.
@@ -33,6 +42,9 @@ def extract_and_merge_column_from_csvs(csv_paths, column_name, output_csv, outpu
 
     # Concatenate all columns into a single DataFrame
     merged_df = pd.concat(extracted_columns_list, axis=1)
+
+    # Format all numerical values to two decimal places
+    merged_df = merged_df.apply(format_values)
 
     # Create a DataFrame for the LaTeX-style values
     latex_values = pd.DataFrame({

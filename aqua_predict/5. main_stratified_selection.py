@@ -36,7 +36,7 @@ FNAME = FNAMES[0]
 CODE_NAME = re.search(r"WV\d+", FNAME).group(0) \
     if re.search(r"WV\d+", FNAME) else None
 
-year_ranges = {"test_range_1": [2015, 2016, 2017], "test_range_2": [2018, 2019, 2020]}
+year_ranges = {"test_range_1": [2018, 2019, 2020], "test_range_2": [2015, 2016, 2017]}
 test_years = year_ranges["test_range_1"]
 key_range_name = next(k for k, v in year_ranges.items() if v == test_years)
 

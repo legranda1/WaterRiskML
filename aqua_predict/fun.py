@@ -86,7 +86,7 @@ def is_lowly_correlated(feature, selected_feats, corr_matrix):
     for selected_feature in selected_feats:
         # Check if the absolute correlation between the current feature and any selected feature
         # is non-zero (i.e., there is some correlation, even if small)
-        if abs(corr_matrix.loc[feature, selected_feature]) > 0.3:
+        if abs(corr_matrix.loc[feature, selected_feature]) > 0.1:
             return False
     return True
 
