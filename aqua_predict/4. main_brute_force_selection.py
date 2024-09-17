@@ -255,12 +255,14 @@ def main():
     all_par_sets = []
     # Initialize the iteration counter
     counter = 0
-    # Define a length scale vector with one element per feature
-    length_scale = np.ones(len(SEL_FEATS))
     # Iterate over each combination of feature columns
     for comb_feat in comb_feats:
         selected_features = np.array(SEL_FEATS)[comb_feat]
         x_selected = x_all[:, comb_feat]
+
+        # Set length_scale to match the number of selected features
+        length_scale = np.ones(len(comb_feat))
+
         # Iterate over each scaler within the scalers list
         for scaler in scalers:
             # Iterate over the noise switch (Yes/No)
